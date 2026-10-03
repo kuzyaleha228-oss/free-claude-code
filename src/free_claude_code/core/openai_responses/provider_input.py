@@ -1,18 +1,40 @@
 """Convert Anthropic Messages into an upstream OpenAI Responses request."""
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from free_claude_code.core.anthropic.content import get_block_attr, get_block_type
 from free_claude_code.core.anthropic.conversion import resolve_anthropic_tool_choice
+from free_claude_code.core.anthropic.image_sources import (
+    AnthropicImageSourceError,
+    portable_anthropic_image_url,
+)
 from free_claude_code.core.anthropic.models import MessagesRequest
-from free_claude_code.core.anthropic.openai_tool_names import OpenAIToolNameCodec
 from free_claude_code.core.anthropic.request_serialization import (
     serialize_tool_result_content,
 )
-from free_claude_code.core.reasoning import ReasoningControl, ReasoningPolicy
+from free_claude_code.core.anthropic.tool_results import (
+    ToolResultImage,
+    ToolResultText,
+    decompose_tool_result_content,
+)
+from free_claude_code.core.history_replay import (
+    HistoryReplayError,
+    ReplayOrigin,
+    ReplayRecord,
+    encode_replay,
+    has_readable_replay,
+    is_replay,
+    tool_history_context,
+    validate_hosted_tool_history,
+)
+from free_claude_code.core.json_types import JsonObject
+from free_claude_code.core.openai_tool_names import OpenAIToolNameCodec
+from free_claude_code.core.reasoning import ReasoningPolicy
+from free_claude_code.core.tool_schema_patterns import translate_tool_schema_patterns
 
 from .errors import ResponsesConversionError
+from .reasoning import responses_reasoning_config
 
 
 def build_responses_provider_request(
@@ -70,7 +92,9 @@ def build_responses_provider_request(
                 "type": "function",
                 "name": tool_names.encode(tool.name),
                 "description": tool.description,
-                "parameters": tool.input_schema or {"type": "object", "properties": {}},
+                "parameters": translate_tool_schema_patterns(
+                    tool.input_schema or {"type": "object", "properties": {}}
+                ),
                 "strict": False,
             }
             for tool in request.tools
@@ -78,7 +102,7 @@ def build_responses_provider_request(
     tool_choice = resolve_anthropic_tool_choice(request.tools, request.tool_choice)
     if tool_choice is not None:
         body["tool_choice"] = _tool_choice(tool_choice, tool_names=tool_names)
-    if reasoning_config := _reasoning_config(reasoning):
+    if reasoning_config := responses_reasoning_config(reasoning):
         body["reasoning"] = reasoning_config
     return body
 
@@ -157,49 +181,92 @@ def _assistant_items(
     reasoning_content: str | None,
     tool_names: OpenAIToolNameCodec,
 ) -> list[dict[str, Any]]:
-    if isinstance(content, str):
-        items = [_assistant_message([{"type": "output_text", "text": content}])]
-        if reasoning_content is not None:
-            items.insert(
-                0,
-                {
-                    "type": "reasoning",
-                    "summary": [{"type": "summary_text", "text": reasoning_content}],
-                },
-            )
-        return items
-    if not isinstance(content, list):
+    blocks = (
+        [{"type": "text", "text": content}] if isinstance(content, str) else content
+    )
+    if not isinstance(blocks, list):
         raise ResponsesConversionError(
             "Assistant content must be text or content blocks."
         )
-
+    try:
+        validate_hosted_tool_history(
+            [
+                {
+                    "type": get_block_type(block),
+                    "id": get_block_attr(block, "id", None),
+                    "tool_use_id": get_block_attr(block, "tool_use_id", None),
+                }
+                for block in blocks
+            ]
+        )
+    except HistoryReplayError as error:
+        raise ResponsesConversionError(str(error)) from error
     items: list[dict[str, Any]] = []
     text_parts: list[dict[str, Any]] = []
-    thinking_parts: list[str] = (
-        [reasoning_content] if reasoning_content is not None else []
-    )
-    encrypted_parts: list[str] = []
 
     def flush_text() -> None:
         if text_parts:
             items.append(_assistant_message(list(text_parts)))
             text_parts.clear()
 
-    for block in content:
-        block_type = get_block_type(block)
-        if block_type == "text":
+    if reasoning_content is not None and not any(
+        get_block_type(block) == "thinking" for block in blocks
+    ):
+        items.append(
+            {
+                "type": "reasoning",
+                "content": [{"type": "reasoning_text", "text": reasoning_content}],
+                "summary": [],
+            }
+        )
+    for block in blocks:
+        kind = get_block_type(block)
+        if kind == "text":
             text_parts.append(
+                {"type": "output_text", "text": str(get_block_attr(block, "text", ""))}
+            )
+            continue
+        flush_text()
+        if kind == "thinking":
+            signature = get_block_attr(block, "signature", None)
+            item: dict[str, Any] = {"type": "reasoning", "summary": []}
+            if isinstance(signature, str) and signature:
+                native = (
+                    block
+                    if isinstance(block, dict)
+                    else block.model_dump(mode="json", exclude_none=True)
+                )
+                item["encrypted_content"] = (
+                    signature
+                    if is_replay(signature)
+                    else encode_replay(
+                        ReplayRecord(
+                            ReplayOrigin(
+                                "unattributed/messages", "messages", "", "", "unknown"
+                            ),
+                            cast(JsonObject, native),
+                        )
+                    )
+                )
+            if not signature or (
+                is_replay(signature) and not has_readable_replay(signature)
+            ):
+                item["content"] = [
+                    {
+                        "type": "reasoning_text",
+                        "text": str(get_block_attr(block, "thinking", "")),
+                    }
+                ]
+            items.append(item)
+        elif kind == "redacted_thinking":
+            items.append(
                 {
-                    "type": "output_text",
-                    "text": str(get_block_attr(block, "text", "")),
+                    "type": "reasoning",
+                    "summary": [],
+                    "encrypted_content": str(get_block_attr(block, "data", "")),
                 }
             )
-        elif block_type == "thinking":
-            thinking_parts.append(str(get_block_attr(block, "thinking", "")))
-        elif block_type == "redacted_thinking":
-            encrypted_parts.append(str(get_block_attr(block, "data", "")))
-        elif block_type == "tool_use":
-            flush_text()
+        elif kind == "tool_use":
             items.append(
                 {
                     "type": "function_call",
@@ -212,25 +279,25 @@ def _assistant_items(
                     ),
                 }
             )
+        elif kind in {
+            "server_tool_use",
+            "web_search_tool_result",
+            "web_fetch_tool_result",
+        }:
+            native = (
+                block
+                if isinstance(block, dict)
+                else block.model_dump(mode="json", exclude_none=True)
+            )
+            items.append(
+                _assistant_message(
+                    [{"type": "output_text", "text": tool_history_context(native)}]
+                )
+            )
         else:
             raise ResponsesConversionError(
-                "OpenAI Responses cannot represent assistant content block "
-                f"{block_type!r}."
+                f"OpenAI Responses cannot represent assistant content block {kind!r}."
             )
-    if thinking_parts or encrypted_parts:
-        summary = [
-            {"type": "summary_text", "text": text} for text in thinking_parts if text
-        ]
-        if encrypted_parts:
-            for index, encrypted in enumerate(encrypted_parts):
-                item: dict[str, Any] = {
-                    "type": "reasoning",
-                    "summary": summary if index == 0 else [],
-                    "encrypted_content": encrypted,
-                }
-                items.insert(index, item)
-        else:
-            items.insert(0, {"type": "reasoning", "summary": summary})
     flush_text()
     return items
 
@@ -262,13 +329,25 @@ def _user_items(content: Any) -> list[dict[str, Any]]:
             message_parts.append(_image_part(block))
         elif block_type == "tool_result":
             flush_message()
+            tool_content = get_block_attr(block, "content")
+            try:
+                decomposed = decompose_tool_result_content(tool_content)
+            except AnthropicImageSourceError as exc:
+                raise ResponsesConversionError(str(exc)) from exc
+            if decomposed.has_images:
+                output: str | list[JsonObject] = []
+                for part in decomposed.parts:
+                    if isinstance(part, ToolResultText):
+                        output.append({"type": "input_text", "text": part.text})
+                    elif isinstance(part, ToolResultImage):
+                        output.append({"type": "input_image", "image_url": part.url})
+            else:
+                output = serialize_tool_result_content(tool_content)
             items.append(
                 {
                     "type": "function_call_output",
                     "call_id": str(get_block_attr(block, "tool_use_id", "")),
-                    "output": serialize_tool_result_content(
-                        get_block_attr(block, "content")
-                    ),
+                    "output": output,
                 }
             )
         elif block_type == "document":
@@ -284,22 +363,10 @@ def _user_items(content: Any) -> list[dict[str, Any]]:
 
 
 def _image_part(block: Any) -> dict[str, Any]:
-    source = get_block_attr(block, "source", {})
-    source_type = get_block_attr(source, "type")
-    if source_type == "url":
-        url = get_block_attr(source, "url")
-    elif source_type == "base64":
-        media_type = get_block_attr(source, "media_type")
-        data = get_block_attr(source, "data")
-        if not isinstance(media_type, str) or not isinstance(data, str):
-            raise ResponsesConversionError("Base64 images require media_type and data.")
-        url = f"data:{media_type};base64,{data}"
-    else:
-        raise ResponsesConversionError(
-            f"Unsupported image source type {source_type!r}."
-        )
-    if not isinstance(url, str) or not url:
-        raise ResponsesConversionError("Image source requires a non-empty URL.")
+    try:
+        url = portable_anthropic_image_url(get_block_attr(block, "source", {}))
+    except AnthropicImageSourceError as exc:
+        raise ResponsesConversionError(str(exc)) from exc
     return {"type": "input_image", "image_url": url}
 
 
@@ -340,13 +407,3 @@ def _tool_choice(
             raise ResponsesConversionError("Forced tool choice requires a tool name.")
         return {"type": "function", "name": tool_names.encode(name)}
     raise ResponsesConversionError(f"Unsupported tool_choice type {choice_type!r}.")
-
-
-def _reasoning_config(reasoning: ReasoningPolicy) -> dict[str, str]:
-    if reasoning.control is ReasoningControl.OFF:
-        return {"effort": "none"}
-    if reasoning.effort is not None:
-        return {"effort": reasoning.effort.value, "summary": "auto"}
-    if reasoning.requests_reasoning:
-        return {"summary": "auto"}
-    return {}

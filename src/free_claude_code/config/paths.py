@@ -14,6 +14,12 @@ AUTH_DIRNAME = "auth"
 OPENAI_AUTH_FILENAME = "openai.json"
 OPENAI_AUTH_LOCK_FILENAME = "openai.lock"
 CONFIG_LOCK_FILENAME = "config.lock"
+FCC_TEMP_DIRNAME = "tmp"
+LAUNCHER_TEMP_DIRNAME = "launchers"
+CODE_STATE_DIRNAME = "code"
+FCC_DATABASE_FILENAME = "fcc.db"
+CODE_DATABASE_FILENAME = "code.db"
+CODE_LOCK_FILENAME = "code.lock"
 
 
 def config_dir_path() -> Path:
@@ -32,6 +38,27 @@ def config_lock_path() -> Path:
     """Return the cross-process managed-config migration lock path."""
 
     return config_dir_path() / CONFIG_LOCK_FILENAME
+
+
+def launcher_temp_dir_path() -> Path:
+    """Return the base directory for private native launcher configuration."""
+
+    return config_dir_path() / FCC_TEMP_DIRNAME / LAUNCHER_TEMP_DIRNAME
+
+
+def fcc_database_path() -> Path:
+    """Return the shared FCC database path."""
+    return config_dir_path() / FCC_DATABASE_FILENAME
+
+
+def legacy_code_database_path() -> Path:
+    """Return the former Code database path for startup relocation."""
+    return config_dir_path() / CODE_STATE_DIRNAME / CODE_DATABASE_FILENAME
+
+
+def code_lock_path() -> Path:
+    """Return the exclusive Code sessions process-lock path."""
+    return config_dir_path() / CODE_STATE_DIRNAME / CODE_LOCK_FILENAME
 
 
 def legacy_env_paths() -> tuple[Path, ...]:
@@ -62,6 +89,10 @@ def codex_model_catalog_path() -> Path:
     return config_dir_path() / CODEX_MODEL_CATALOG_FILENAME
 
 
+def claude_desktop_disconnect_path() -> Path:
+    return config_dir_path() / "claude-desktop-disconnect.json"
+
+
 def openai_auth_path() -> Path:
     """Return FCC's private ChatGPT credential file path."""
 
@@ -72,3 +103,8 @@ def openai_auth_lock_path() -> Path:
     """Return the cross-process lock path for ChatGPT credentials."""
 
     return config_dir_path() / AUTH_DIRNAME / OPENAI_AUTH_LOCK_FILENAME
+
+
+def github_copilot_auth_path() -> Path:
+    """Return FCC connection state; native Copilot retains credentials."""
+    return config_dir_path() / AUTH_DIRNAME / "github_copilot.json"

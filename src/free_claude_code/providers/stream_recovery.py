@@ -5,12 +5,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
-import httpx
-import openai
+from free_claude_code.core.stream_delivery import StreamDeliveryState
 
-from free_claude_code.core.failures import ExecutionFailure
-
-from .failure_policy import RetryableProviderProtocolError, retryable_transient_status
+from .failure_policy import RetryableProviderProtocolError
 
 EARLY_HOLDBACK_SECONDS = 0.75
 RECOVERY_BUFFER_MAX_BYTES = 65_536
@@ -93,8 +90,9 @@ class RecoveryHoldbackBuffer:
 class RecoveryController:
     """Own commit-boundary holdback for one provider stream lifecycle."""
 
-    def __init__(self) -> None:
+    def __init__(self, delivery: StreamDeliveryState | None = None) -> None:
         self._holdback = RecoveryHoldbackBuffer()
+        self._delivery = delivery
 
     @property
     def committed(self) -> bool:
@@ -120,26 +118,34 @@ class RecoveryController:
 
     def advance_failure(
         self,
-        error: BaseException,
         *,
+        retryable: bool,
         stream_opened: bool,
         generated_output: bool,
         complete_tool_salvageable: bool,
         attempts_remaining: int,
-        retryable_override: bool | None = None,
+        normal_stop_seen: bool = False,
     ) -> RecoveryDecision:
-        retryable = (
-            is_retryable_stream_error(error)
-            if retryable_override is None
-            else retryable_override
-        )
         committed = self._holdback.committed
         has_buffered = self._holdback.has_buffered
         retry_available = attempts_remaining > 0
         reserve_last_attempt_for_recovery = generated_output and attempts_remaining == 1
 
+        public_hidden = (
+            self._delivery is not None and not self._delivery.content_released
+        )
+
         if (
-            retryable
+            stream_opened
+            and can_retry_undelivered_stream(
+                self._delivery,
+                retryable=retryable,
+                attempts_remaining=attempts_remaining,
+                normal_stop_seen=normal_stop_seen,
+            )
+        ) or (
+            not public_hidden
+            and retryable
             and retry_available
             and stream_opened
             and not committed
@@ -156,7 +162,8 @@ class RecoveryController:
             )
 
         if (
-            retryable
+            not public_hidden
+            and retryable
             and generated_output
             and (retry_available or complete_tool_salvageable)
         ):
@@ -175,26 +182,18 @@ class RecoveryController:
         )
 
 
-def is_retryable_stream_error(exc: BaseException) -> bool:
-    """Return whether one stream failure qualifies for retry or recovery."""
-    if isinstance(exc, RetryableProviderProtocolError):
-        return True
-    if isinstance(exc, ExecutionFailure):
-        return exc.retryable
-    if isinstance(exc, openai.AuthenticationError | openai.BadRequestError):
-        return False
-    if retryable_transient_status(exc) is not None:
-        return True
-    return isinstance(
-        exc,
-        (
-            TimeoutError,
-            httpx.ReadTimeout,
-            httpx.ReadError,
-            httpx.RemoteProtocolError,
-            httpx.ConnectError,
-            httpx.NetworkError,
-            openai.APITimeoutError,
-            openai.APIConnectionError,
-        ),
+def can_retry_undelivered_stream(
+    delivery: StreamDeliveryState | None,
+    *,
+    retryable: bool,
+    attempts_remaining: int,
+    normal_stop_seen: bool,
+) -> bool:
+    """A clean restart is safe only before content and a normal model stop."""
+    return (
+        delivery is not None
+        and not delivery.content_released
+        and retryable
+        and attempts_remaining > 0
+        and not normal_stop_seen
     )

@@ -18,6 +18,13 @@ class ProviderFieldOverride(TypedDict, total=False):
 
 
 _PROVIDER_FIELD_OVERRIDES: dict[str, ProviderFieldOverride] = {
+    "ANTHROPIC_API_KEY": {
+        "description": "Anthropic API access with separate usage billing. Messages requests use Anthropic tools and client thinking controls. Native fallback uses other Anthropic models. FCC local web and prompt optimizations apply to compatibility routes.",
+    },
+    "OPENAI_API_KEY": {
+        "label": "OpenAI API Key",
+        "description": "API key for the OpenAI Platform. Separate from ChatGPT sign-in.",
+    },
     "OPENAI_PROXY": {
         "description": (
             "Optional proxy used for OpenAI sign-in and ChatGPT Codex requests. "
@@ -88,13 +95,6 @@ _PROVIDER_FIELD_OVERRIDES: dict[str, ProviderFieldOverride] = {
     "COHERE_API_KEY": {
         "label": "Cohere API Key",
         "description": "Cohere API key for the OpenAI-compatible Compatibility API.",
-    },
-    "GITHUB_MODELS_TOKEN": {
-        "label": "GitHub Models Token",
-        "description": (
-            "GitHub token with Models access for the OpenAI-compatible inference API "
-            "at models.github.ai."
-        ),
     },
     "ZAI_API_KEY": {
         "label": "Z.ai API Key",
@@ -168,6 +168,19 @@ _PROVIDER_FIELD_OVERRIDES: dict[str, ProviderFieldOverride] = {
             "models."
         ),
     },
+    "ALIBABA_CLOUD_API_KEY": {
+        "description": (
+            "Alibaba Cloud Model Studio pay-as-you-go API key. Use a key from "
+            "the same region as the base URL."
+        ),
+    },
+    "ALIBABA_CLOUD_BASE_URL": {
+        "description": (
+            "Optional Model Studio OpenAI-compatible base URL ending in "
+            "/compatible-mode/v1. Defaults to Singapore. Set your regional "
+            "or workspace URL when using a key from another region."
+        ),
+    },
     "QWENCLOUD_API_KEY": {
         "label": "QwenCloud Token Plan API Key",
         "description": (
@@ -211,6 +224,13 @@ _PROVIDER_FIELD_OVERRIDES: dict[str, ProviderFieldOverride] = {
             "and tool-capable models."
         ),
     },
+    "SCW_SECRET_KEY": {
+        "label": "Scaleway API Key",
+        "description": (
+            "Scaleway Generative APIs secret key for OpenAI-compatible chat and "
+            "tool-capable models."
+        ),
+    },
     "CHUTES_API_KEY": {
         "label": "Chutes API Key",
         "description": (
@@ -251,12 +271,6 @@ _PROVIDER_FIELD_OVERRIDES: dict[str, ProviderFieldOverride] = {
             "TokenRouter OpenAI-compatible gateway API key for api.tokenrouter.com/v1."
         ),
     },
-    "TOKENROUTER_BASE_URL": {
-        "description": (
-            "TokenRouter OpenAI-compatible Chat Completions base URL. "
-            "Defaults to https://api.tokenrouter.com/v1."
-        ),
-    },
     "NARAROUTE_API_KEY": {
         "label": "NaraRoute API Key",
         "description": (
@@ -264,10 +278,26 @@ _PROVIDER_FIELD_OVERRIDES: dict[str, ProviderFieldOverride] = {
             "Keys begin with sk-nry-; create one at router.bynara.id/keys."
         ),
     },
-    "NARAROUTE_BASE_URL": {
+    "LIGHTNING_API_KEY": {
+        "label": "Lightning AI API Key",
         "description": (
-            "NaraRoute OpenAI-compatible Chat Completions base URL. "
-            "Defaults to https://router.bynara.id/v1."
+            "Lightning AI Model APIs key for the OpenAI-compatible endpoint at "
+            "lightning.ai/api/v1. Create one on lightning.ai under Model APIs."
+        ),
+    },
+    "ORCAROUTER_API_KEY": {
+        "label": "OrcaRouter API Key",
+        "description": (
+            "OrcaRouter OpenAI-compatible multi-provider gateway API key for "
+            "api.orcarouter.ai/v1. Keys begin with sk-orca-; create one at "
+            "www.orcarouter.ai/console."
+        ),
+    },
+    "XKIRO_API_KEY": {
+        "label": "xKiro API Key",
+        "description": (
+            "xKiro API key for api.xkiro.com/v1. "
+            "Create one at xkiro.com/dashboard/api/keys."
         ),
     },
     "AGNES_API_KEY": {
@@ -290,6 +320,22 @@ _PROVIDER_FIELD_OVERRIDES: dict[str, ProviderFieldOverride] = {
             "Create one in [W&B User Settings](https://wandb.ai/settings)."
         ),
     },
+    "EXPLABS_API_KEY": {
+        "label": "Experiential Labs API Key",
+        "description": (
+            "Experiential Labs OpenAI-compatible gateway API key for "
+            "api.experientiallabs.ai/v1. Keys look like xpl_ followed by 40 "
+            "hex characters; mint one at platform.experientiallabs.ai/settings/api-keys."
+        ),
+    },
+    "CHEAPER_INFERENCE_API_KEY": {
+        "label": "Cheaper Inference API Key",
+        "description": (
+            "Cheaper Inference OpenAI-compatible gateway API key for "
+            "api.cheaperinference.com/v1. "
+            "Keys start with ci_live_; create one at cheaperinference.com/signup."
+        ),
+    },
 }
 
 
@@ -298,6 +344,14 @@ def provider_field_specs() -> tuple[ConfigFieldSpec, ...]:
 
     return (
         *_credential_field_specs(),
+        ConfigFieldSpec(
+            key="ANTHROPIC_WORKSPACE_ID",
+            label="Anthropic Workspace ID",
+            section_id="providers",
+            settings_attr="anthropic_workspace_id",
+            provider_ids=("anthropic",),
+            description="Optional for workspace-scoped keys. Required for multi-workspace API keys.",
+        ),
         *_cloudflare_account_field_specs(),
         *_vertex_field_specs(),
         *_base_url_field_specs(),
@@ -322,6 +376,11 @@ def _credential_field_specs() -> tuple[ConfigFieldSpec, ...]:
                     section_id="providers",
                     field_type="secret",
                     settings_attr=descriptor.credential_attr,
+                    provider_ids=tuple(
+                        provider.provider_id
+                        for provider in PROVIDER_CATALOG.values()
+                        if provider.credential_env == descriptor.credential_env
+                    ),
                     secret=True,
                 )
             )
@@ -342,6 +401,7 @@ def _base_url_field_specs() -> tuple[ConfigFieldSpec, ...]:
                     label=f"{descriptor.display_name} Base URL",
                     section_id="providers",
                     settings_attr=descriptor.base_url_attr,
+                    provider_ids=(descriptor.provider_id,),
                 )
             )
         )
@@ -355,6 +415,7 @@ def _cloudflare_account_field_specs() -> tuple[ConfigFieldSpec, ...]:
             label="Cloudflare Account ID",
             section_id="providers",
             settings_attr="cloudflare_account_id",
+            provider_ids=("cloudflare",),
             description=(
                 "Cloudflare account ID used to build the /accounts/{id}/ai/v1 endpoint."
             ),
@@ -369,6 +430,7 @@ def _vertex_field_specs() -> tuple[ConfigFieldSpec, ...]:
             label="Google Cloud Project ID",
             section_id="providers",
             settings_attr="vertex_project_id",
+            provider_ids=("vertex",),
             description=(
                 "Google Cloud project used for Vertex AI. Authentication uses "
                 "Application Default Credentials (ADC)."
@@ -379,6 +441,7 @@ def _vertex_field_specs() -> tuple[ConfigFieldSpec, ...]:
             label="Vertex AI Location",
             section_id="providers",
             settings_attr="vertex_location",
+            provider_ids=("vertex",),
             description=(
                 "Use global for the global Vertex AI endpoint or a region such as "
                 "us-central1."
@@ -400,6 +463,7 @@ def _proxy_field_specs() -> tuple[ConfigFieldSpec, ...]:
                     section_id="providers",
                     field_type="secret",
                     settings_attr=descriptor.proxy_attr,
+                    provider_ids=(descriptor.provider_id,),
                     secret=True,
                     advanced=True,
                 )

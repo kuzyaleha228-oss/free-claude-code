@@ -33,7 +33,9 @@ DEFAULT_TARGETS = frozenset(
     }
 )
 SIDE_EFFECT_TARGETS = frozenset({"discord", "telegram", "voice"})
-OPT_IN_TARGETS = frozenset({"nvidia_nim_cli", "openrouter_free_cli"})
+OPT_IN_TARGETS = frozenset(
+    {"nvidia_nim_cli", "nvidia_nim_vision", "openrouter_free_cli"}
+)
 ALL_TARGETS = DEFAULT_TARGETS | SIDE_EFFECT_TARGETS | OPT_IN_TARGETS
 TARGET_ALIASES = {
     "contract": "api",
@@ -66,20 +68,21 @@ PROVIDER_SMOKE_DEFAULT_MODELS: dict[str, str] = {
     "bedrock": "bedrock/openai.gpt-oss-120b",
     "huggingface": "huggingface/openai/gpt-oss-120b:fastest",
     "cohere": "cohere/command-a-plus-05-2026",
-    "github_models": "github_models/openai/gpt-4.1",
     "zai": "zai/glm-5.2",
     "zai_api": "zai_api/glm-4.7-flash",
     "gemini": "gemini/models/gemini-3.1-flash-lite",
     "vertex": "vertex/google/gemini-3.5-flash",
-    "groq": "groq/llama-3.3-70b-versatile",
+    "groq": "groq/openai/gpt-oss-20b",
     "cline_pass": "cline_pass/cline-pass/deepseek-v4-flash",
     "xai": "xai/grok-4.5",
+    "alibaba_cloud": "alibaba_cloud/qwen3-coder-plus",
     "qwencloud": "qwencloud/qwen3.7-plus",
     "qwencloud_coding": "qwencloud_coding/qwen3.7-plus",
     "together": "together/zai-org/GLM-5.2",
     "deepinfra": "deepinfra/deepseek-ai/DeepSeek-V4-Flash",
     "siliconflow": "siliconflow/Qwen/Qwen3-32B",
     "nebius": "nebius/Qwen/Qwen3-30B-A3B",
+    "scaleway": "scaleway/deepseek/deepseek-v4-flash",
     "chutes": "chutes/Qwen/Qwen3-32B-TEE",
     "featherless": "featherless/Qwen/Qwen3-32B",
     "sambanova": "sambanova/Meta-Llama-3.3-70B-Instruct",
@@ -89,6 +92,13 @@ PROVIDER_SMOKE_DEFAULT_MODELS: dict[str, str] = {
     "cloudflare": "cloudflare/@cf/moonshotai/kimi-k2.6",
     "tokenrouter": "tokenrouter/moonshotai/kimi-k3-free",
     "nararoute": "nararoute/kimi-k3-free",
+    "poolside": "poolside/poolside/laguna-s-2.1",
+    "llm7": "llm7/default",
+    "lightning": "lightning/lightning-ai/Qwen3.8-27B",
+    "experiential": "experiential/union-alpha",
+    "cheaperinference": "cheaperinference/gpt-5.4-mini",
+    "orcarouter": "orcarouter/deepseek/deepseek-v4-flash-free",
+    "xkiro": "xkiro/qwen/qwen3.7-flash:free",
     "agnes": "agnes/agnes-2.0-flash",
     "zenmux": "zenmux/deepseek/deepseek-v4-flash-free",
     "wandb": "wandb/openai/gpt-oss-20b",
@@ -96,19 +106,16 @@ PROVIDER_SMOKE_DEFAULT_MODELS: dict[str, str] = {
 MISTRAL_REASONING_SMOKE_DEFAULT_MODEL = "mistral/mistral-medium-3-5"
 
 NVIDIA_NIM_CLI_DEFAULT_MODELS: tuple[str, ...] = (
-    "z-ai/glm-5.2",
-    "moonshotai/kimi-k2.6",
-    "minimaxai/minimax-m2.7",
+    "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "moonshotai/kimi-k3",
     "minimaxai/minimax-m3",
     "nvidia/nemotron-3-super-120b-a12b",
-    "deepseek-ai/deepseek-v4-pro",
-    "deepseek-ai/deepseek-v4-flash",
 )
 
 OPENROUTER_FREE_CLI_DEFAULT_MODELS: tuple[str, ...] = (
     "nvidia/nemotron-3-super-120b-a12b:free",
-    "openai/gpt-oss-120b:free",
-    "poolside/laguna-m.1:free",
+    "poolside/laguna-s-2.1:free",
+    "poolside/laguna-xs-2.1:free",
 )
 
 
@@ -129,6 +136,10 @@ TARGET_REQUIRED_ENV: dict[str, tuple[str, ...]] = {
     "nvidia_nim_cli": (
         "NVIDIA_NIM_API_KEY",
         "FCC_SMOKE_CLAUDE_BIN or claude on PATH",
+    ),
+    "nvidia_nim_vision": (
+        "NVIDIA_NIM_API_KEY",
+        "FCC_SMOKE_MODEL_NVIDIA_NIM_VISION",
     ),
     "openrouter_free_cli": (
         "OPENROUTER_API_KEY",
@@ -240,6 +251,18 @@ class SmokeConfig:
             ProviderModel(provider="nvidia_nim", full_model=full_model, source=source)
             for full_model, source in nvidia_nim_cli_model_refs().items()
         ]
+
+    def nvidia_nim_vision_model(self) -> ProviderModel | None:
+        """Return only an explicitly selected NVIDIA NIM vision model."""
+        override_env = "FCC_SMOKE_MODEL_NVIDIA_NIM_VISION"
+        override = os.getenv(override_env)
+        if override is None:
+            return None
+        return ProviderModel(
+            provider="nvidia_nim",
+            full_model=_normalize_provider_model("nvidia_nim", override),
+            source=override_env,
+        )
 
     def openrouter_free_cli_models(self) -> list[ProviderModel]:
         """Return OpenRouter free models for Claude Code CLI characterization."""

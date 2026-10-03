@@ -91,7 +91,7 @@ _NON_PROVIDER_FIELDS: tuple[ConfigFieldSpec, ...] = (
         "models",
         "model",
         settings_attr="model",
-        description="Fallback provider/model route for all Claude model names.",
+        description="Provider/model used when no tier-specific override applies.",
     ),
     ConfigFieldSpec(
         "MODEL_FABLE",
@@ -126,6 +126,19 @@ _NON_PROVIDER_FIELDS: tuple[ConfigFieldSpec, ...] = (
         description="Select None to use the Default Model for Haiku requests.",
     ),
     ConfigFieldSpec(
+        "MODEL_FALLBACKS",
+        "Fallback Models",
+        "models",
+        "model_list",
+        settings_attr="model_fallbacks",
+        description=(
+            "Tried in order when the selected provider/model fails before output "
+            "starts. Applies to every client. One request may reach multiple "
+            "providers and consume usage at each. Native Anthropic Messages requests "
+            "use only other Anthropic models as fallbacks."
+        ),
+    ),
+    ConfigFieldSpec(
         "REASONING_POLICY",
         "Reasoning Policy",
         "reasoning",
@@ -134,7 +147,8 @@ _NON_PROVIDER_FIELDS: tuple[ConfigFieldSpec, ...] = (
         options=_reasoning_options(ROOT_REASONING_PREFERENCES),
         description=(
             "From client preserves CLI effort. Providers translate only the controls "
-            "their API supports."
+            "their API supports. Native Anthropic Messages requests always use the "
+            "client thinking controls."
         ),
     ),
     ConfigFieldSpec(
@@ -211,6 +225,19 @@ _NON_PROVIDER_FIELDS: tuple[ConfigFieldSpec, ...] = (
         "runtime",
         "number",
         settings_attr="provider_max_concurrency",
+    ),
+    ConfigFieldSpec(
+        "PROVIDER_PROGRESS_TIMEOUT",
+        "Provider Progress Timeout",
+        "runtime",
+        "number",
+        settings_attr="provider_progress_timeout",
+        description=(
+            "Maximum seconds without a non-empty protocol event, including "
+            "provider admission, retries, and backoff. Independent of HTTP Read "
+            "Timeout."
+        ),
+        advanced=True,
     ),
     ConfigFieldSpec(
         "HTTP_READ_TIMEOUT",
@@ -409,6 +436,10 @@ _NON_PROVIDER_FIELDS: tuple[ConfigFieldSpec, ...] = (
         "web_tools",
         "boolean",
         settings_attr="enable_web_server_tools",
+        description=(
+            "Let Claude Code use WebSearch through FCC and allow forced local web "
+            "tools. Disable to prevent local web access."
+        ),
     ),
     ConfigFieldSpec(
         "WEB_FETCH_ALLOWED_SCHEMES",

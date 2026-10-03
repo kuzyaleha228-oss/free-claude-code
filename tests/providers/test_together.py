@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import httpx
+import httpx2
 import pytest
 from openai import AsyncOpenAI
 
@@ -30,8 +31,6 @@ def together_provider() -> OpenAIChatProvider:
         make_provider_config(
             api_key="test-together-key",
             base_url=TOGETHER_DEFAULT_BASE,
-            rate_limit=10,
-            rate_window=60,
         ),
         admission=immediate_admission(provider_name="together"),
     )
@@ -81,7 +80,7 @@ def test_build_request_body_preserves_common_chat_tools_and_images(
         }
     )
 
-    body = together_provider._build_request_body(
+    body = together_provider._chat._build_request_body(
         request,
         reasoning=reasoning_for(request),
     )
@@ -111,7 +110,7 @@ def test_build_request_body_does_not_invent_catalog_wide_reasoning_control(
         }
     )
 
-    body = together_provider._build_request_body(request, reasoning=reasoning)
+    body = together_provider._chat._build_request_body(request, reasoning=reasoning)
     extra_body = body.get("extra_body", {})
 
     for field in ("reasoning", "reasoning_effort", "chat_template_kwargs"):
@@ -139,7 +138,7 @@ def test_build_request_body_replays_documented_reasoning_field(
         }
     )
 
-    body = together_provider._build_request_body(
+    body = together_provider._chat._build_request_body(
         request,
         reasoning=reasoning_for(request),
     )
@@ -193,11 +192,11 @@ async def test_lists_only_documented_chat_models(
 async def test_model_catalog_uses_configured_base_url_and_auth(
     together_provider: OpenAIChatProvider,
 ) -> None:
-    requests: list[httpx.Request] = []
+    requests: list[httpx2.Request] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json=[
                 {
@@ -214,7 +213,7 @@ async def test_model_catalog_uses_configured_base_url_and_auth(
         api_key="wire-together-key",
         base_url=TOGETHER_DEFAULT_BASE,
         max_retries=0,
-        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
     )
     try:
         model_infos = await together_provider.list_model_infos()

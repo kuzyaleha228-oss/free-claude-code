@@ -20,15 +20,19 @@ from free_claude_code.providers.failure_policy import (
 )
 from free_claude_code.providers.openai_chat import (
     NO_REASONING,
+    OpenAIChatBehavior,
     OpenAIChatProfile,
     OpenAIChatProvider,
 )
 
 from .native_tool_stream import normalize_nim_native_tool_stream
-from .request_options import NIM_REQUEST_POLICY, build_nim_request_body
+from .request_options import (
+    NIM_REQUEST_POLICY,
+    apply_nim_request_options,
+    build_nim_request_body,
+)
 from .retry import (
     clone_body_without_chat_template,
-    clone_body_without_reasoning_budget,
     clone_body_without_reasoning_content,
 )
 from .tool_schema import (
@@ -47,24 +51,22 @@ _PROFILE = OpenAIChatProfile(
 )
 
 
-class NvidiaNimProvider(OpenAIChatProvider):
-    """NVIDIA NIM provider using official OpenAI client."""
+class NvidiaNimChatBehavior(OpenAIChatBehavior):
+    """NVIDIA NIM Chat adaptation without HTTP ownership."""
 
-    def __init__(
-        self,
-        config: ProviderConfig,
-        *,
-        nim_settings: NimSettings,
-        admission: ProviderAdmissionController,
-    ):
-        super().__init__(
-            config,
-            profile=_PROFILE,
-            admission=admission,
-        )
+    def __init__(self, nim_settings: NimSettings) -> None:
+        super().__init__(_PROFILE)
         self._nim_settings = nim_settings
 
-    def _build_request_body(
+    @property
+    def reasoning_off_fields(self) -> tuple[tuple[str, ...], ...]:
+        return (("reasoning_effort",),)
+
+    @property
+    def normal_max_tokens(self) -> int | None:
+        return self._nim_settings.max_tokens
+
+    def build_messages_body(
         self,
         request: MessagesRequest,
         *,
@@ -77,19 +79,29 @@ class NvidiaNimProvider(OpenAIChatProvider):
             reasoning=reasoning,
         )
 
-    def _prepare_create_body(self, body: dict[str, Any]) -> dict[str, Any]:
+    def finalize_chat_body(
+        self,
+        body: dict[str, Any],
+        *,
+        reasoning: ReasoningPolicy,
+    ) -> dict[str, Any]:
+        """Apply NIM policy after either client-protocol translation."""
+        apply_nim_request_options(body, reasoning, nim=self._nim_settings)
+        return body
+
+    def prepare_create_body(self, body: dict[str, Any]) -> dict[str, Any]:
         """Strip private request metadata before calling NVIDIA NIM."""
         return body_without_nim_tool_argument_aliases(body)
 
-    def _normalize_stream(self, stream: Any, _body: Mapping[str, Any]) -> Any:
+    def normalize_stream(self, stream: Any, _body: Mapping[str, Any]) -> Any:
         """Repair model-native MiniMax tool markup leaked by NVIDIA NIM."""
         return normalize_nim_native_tool_stream(stream, _body)
 
-    def _tool_argument_aliases(self, body: dict[str, Any]) -> dict[str, dict[str, str]]:
+    def tool_argument_aliases(self, body: dict[str, Any]) -> dict[str, dict[str, str]]:
         """Return NIM tool argument aliases captured while building this request."""
         return nim_tool_argument_aliases_from_body(body)
 
-    def _get_retry_request_body(self, error: Exception, body: dict) -> dict | None:
+    def retry_request_body(self, error: Exception, body: dict) -> dict | None:
         """Retry once with a downgraded body when NIM rejects a known field."""
         status_code = getattr(error, "status_code", None)
         bad_request_like = isinstance(error, openai.BadRequestError) or (
@@ -101,17 +113,6 @@ class NvidiaNimProvider(OpenAIChatProvider):
         if error_body is not None:
             error_text = f"{error_text} {json.dumps(error_body, default=str)}"
         error_text = error_text.lower()
-
-        if _is_reasoning_budget_rejection(error_text) and (
-            bad_request_like or status_code == 500
-        ):
-            retry_body = clone_body_without_reasoning_budget(body)
-            if retry_body is None:
-                return None
-            logger.warning(
-                "NIM_STREAM: retrying without reasoning budget after upstream rejection"
-            )
-            return retry_body
 
         if not bad_request_like:
             return None
@@ -134,7 +135,7 @@ class NvidiaNimProvider(OpenAIChatProvider):
 
         return None
 
-    def _provider_failure_override(self, error: Exception) -> ExecutionFailure | None:
+    def failure_override(self, error: Exception) -> ExecutionFailure | None:
         """Classify NVIDIA-specific 400/500 responses by their actual semantics."""
         if not isinstance(error, openai.BadRequestError | openai.InternalServerError):
             return None
@@ -149,6 +150,23 @@ class NvidiaNimProvider(OpenAIChatProvider):
         ):
             return overloaded_provider_failure()
         return None
+
+
+class NvidiaNimProvider(OpenAIChatProvider):
+    """NVIDIA NIM provider using official OpenAI client."""
+
+    def __init__(
+        self,
+        config: ProviderConfig,
+        *,
+        nim_settings: NimSettings,
+        admission: ProviderAdmissionController,
+    ):
+        super().__init__(
+            config,
+            behavior=NvidiaNimChatBehavior(nim_settings),
+            admission=admission,
+        )
 
 
 def _nim_error_bodies(error: Exception) -> tuple[Mapping[str, Any], ...]:
@@ -182,10 +200,3 @@ def _is_degraded_function(body: Mapping[str, Any]) -> bool:
         and function_id
         and state.strip() == _DEGRADED_FUNCTION_STATE
     )
-
-
-def _is_reasoning_budget_rejection(error_text: str) -> bool:
-    """Return whether NIM rejected optional thinking budget control."""
-    if "reasoning_budget" in error_text:
-        return True
-    return "thinking_token_budget" in error_text and "reasoning_config" in error_text

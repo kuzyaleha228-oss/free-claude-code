@@ -18,10 +18,17 @@ from free_claude_code.core.anthropic.stream_contracts import (
     text_content,
     thinking_content,
 )
-from free_claude_code.core.reasoning import ReasoningEffort, ReasoningPolicy
+from free_claude_code.core.history_replay import decode_replay
+from free_claude_code.core.model_capabilities import ModelInputModality
+from free_claude_code.core.reasoning import (
+    ReasoningCapability,
+    ReasoningEffort,
+    ReasoningPolicy,
+)
 from free_claude_code.providers.model_listing import ModelListResponseError
 from free_claude_code.providers.openai_chat import OpenAIChatProvider
 from tests.providers.support import (
+    SDKStreamDouble,
     immediate_admission,
     make_provider_config,
     profiled_provider,
@@ -36,8 +43,6 @@ def zenmux_provider() -> OpenAIChatProvider:
         make_provider_config(
             api_key="test-zenmux-key",
             base_url=ZENMUX_DEFAULT_BASE,
-            rate_limit=10,
-            rate_window=60,
         ),
         admission=immediate_admission(provider_name="zenmux"),
     )
@@ -52,13 +57,11 @@ def _request(**overrides: Any) -> MessagesRequest:
     return MessagesRequest.model_validate(payload)
 
 
-class AsyncStream:
+class AsyncStream(SDKStreamDouble):
     def __init__(self, chunks: list[Any]) -> None:
         self._chunks = chunks
         self.closed = False
-
-    def __aiter__(self):
-        return self._iter()
+        super().__init__(self._iter(), close=self.aclose)
 
     async def _iter(self):
         for chunk in self._chunks:
@@ -129,7 +132,7 @@ def test_build_request_body_uses_supported_output_field_tools_and_images(
         ],
     )
 
-    body = zenmux_provider._build_request_body(
+    body = zenmux_provider._chat._build_request_body(
         request,
         reasoning=reasoning_for(request),
     )
@@ -161,7 +164,7 @@ def test_build_request_body_maps_reasoning_effort_to_documented_vocabulary(
     effort: ReasoningEffort,
     expected: str,
 ) -> None:
-    body = zenmux_provider._build_request_body(
+    body = zenmux_provider._chat._build_request_body(
         _request(),
         reasoning=ReasoningPolicy.on(effort=effort),
     )
@@ -182,7 +185,7 @@ def test_build_request_body_maps_reasoning_control_and_budget(
     reasoning: ReasoningPolicy,
     expected: dict[str, Any],
 ) -> None:
-    body = zenmux_provider._build_request_body(_request(), reasoning=reasoning)
+    body = zenmux_provider._chat._build_request_body(_request(), reasoning=reasoning)
 
     assert body["extra_body"]["reasoning"] == expected
 
@@ -190,7 +193,7 @@ def test_build_request_body_maps_reasoning_control_and_budget(
 def test_build_request_body_leaves_reasoning_to_provider_by_default(
     zenmux_provider: OpenAIChatProvider,
 ) -> None:
-    body = zenmux_provider._build_request_body(
+    body = zenmux_provider._chat._build_request_body(
         _request(),
         reasoning=ReasoningPolicy.provider_default(),
     )
@@ -203,7 +206,7 @@ def test_build_request_body_preserves_unrelated_gateway_options(
 ) -> None:
     request = _request(extra_body={"provider": {"fallback": "true"}})
 
-    body = zenmux_provider._build_request_body(
+    body = zenmux_provider._chat._build_request_body(
         request,
         reasoning=ReasoningPolicy.provider_default(),
     )
@@ -222,7 +225,7 @@ def test_build_request_body_rejects_caller_canonical_override(
     request = _request(extra_body={field: "caller-owned"})
 
     with pytest.raises(InvalidRequestError, match="must not override canonical"):
-        zenmux_provider._build_request_body(
+        zenmux_provider._chat._build_request_body(
             request,
             reasoning=ReasoningPolicy.on(),
         )
@@ -267,7 +270,7 @@ def test_build_request_body_replays_reasoning_and_signed_details_unchanged(
         ]
     )
 
-    body = zenmux_provider._build_request_body(
+    body = zenmux_provider._chat._build_request_body(
         request,
         reasoning=reasoning_for(request),
     )
@@ -333,20 +336,19 @@ async def test_stream_preserves_signed_details_without_duplicating_reasoning(
         return_value=stream,
     ):
         event_text = "".join(
-            [event async for event in zenmux_provider.stream_response(_request())]
+            [event async for event in zenmux_provider.stream_messages(_request())]
         )
 
     events = parse_sse_text(event_text)
     assert thinking_content(events) == "plan "
     assert text_content(events) == "done"
-    redacted_blocks = [
-        event.data["content_block"]
+    records = [
+        decode_replay(event.data["delta"]["signature"]).native
         for event in events
-        if event.event == "content_block_start"
-        and event.data.get("content_block", {}).get("type") == "redacted_thinking"
+        if event.data.get("delta", {}).get("type") == "signature_delta"
     ]
-    assert len(redacted_blocks) == 1
-    assert json.loads(redacted_blocks[0]["data"]) == detail
+    assert len(records) == 1
+    assert records[0]["reasoning_details"] == [detail]
     assert stream.closed
 
 
@@ -392,9 +394,23 @@ async def test_model_catalog_filters_modalities_and_maps_reasoning_capability(
 
     assert model_infos == frozenset(
         {
-            ProviderModelInfo("reasoning-chat", supports_thinking=True),
-            ProviderModelInfo("plain-chat", supports_thinking=False),
-            ProviderModelInfo("unknown-chat"),
+            ProviderModelInfo(
+                "reasoning-chat",
+                supports_thinking=True,
+                input_modalities=frozenset(
+                    {ModelInputModality.TEXT, ModelInputModality.IMAGE}
+                ),
+            ),
+            ProviderModelInfo(
+                "plain-chat",
+                supports_thinking=False,
+                reasoning_capability=ReasoningCapability.NONE,
+                input_modalities=frozenset({ModelInputModality.TEXT}),
+            ),
+            ProviderModelInfo(
+                "unknown-chat",
+                input_modalities=frozenset({ModelInputModality.TEXT}),
+            ),
         }
     )
 
@@ -430,7 +446,7 @@ async def test_model_catalog_uses_documented_endpoint_and_auth() -> None:
         return AsyncOpenAI(*args, **kwargs)
 
     with patch(
-        "free_claude_code.providers.openai_chat.provider.AsyncOpenAI",
+        "free_claude_code.providers.openai_chat.client.AsyncOpenAI",
         side_effect=build_client,
     ):
         provider = profiled_provider(
@@ -438,8 +454,6 @@ async def test_model_catalog_uses_documented_endpoint_and_auth() -> None:
             make_provider_config(
                 api_key="wire-zenmux-key",
                 base_url=ZENMUX_DEFAULT_BASE,
-                rate_limit=10,
-                rate_window=60,
             ),
             admission=immediate_admission(provider_name="zenmux"),
         )
@@ -453,6 +467,7 @@ async def test_model_catalog_uses_documented_endpoint_and_auth() -> None:
             ProviderModelInfo(
                 "deepseek/deepseek-v4-flash-free",
                 supports_thinking=True,
+                input_modalities=frozenset({ModelInputModality.TEXT}),
             )
         }
     )
@@ -481,15 +496,6 @@ async def test_model_catalog_uses_documented_endpoint_and_auth() -> None:
             },
             "output_modalities string array",
         ),
-        (
-            {
-                "id": "bad-reasoning-capability",
-                "input_modalities": ["text"],
-                "output_modalities": ["text"],
-                "capabilities": {"reasoning": "yes"},
-            },
-            "capabilities.reasoning to be boolean",
-        ),
     ],
 )
 @pytest.mark.asyncio
@@ -510,3 +516,35 @@ async def test_model_catalog_rejects_malformed_documented_fields(
         pytest.raises(ModelListResponseError, match=message),
     ):
         await zenmux_provider.list_model_infos()
+
+
+@pytest.mark.asyncio
+async def test_model_catalog_degrades_malformed_optional_reasoning_to_unknown(
+    zenmux_provider: OpenAIChatProvider,
+) -> None:
+    payload = SimpleNamespace(
+        data=[
+            {
+                "id": "bad-reasoning-capability",
+                "input_modalities": ["text"],
+                "output_modalities": ["text"],
+                "capabilities": {"reasoning": "yes"},
+            }
+        ]
+    )
+    with patch.object(
+        zenmux_provider._client.models,
+        "list",
+        new_callable=AsyncMock,
+        return_value=payload,
+    ):
+        infos = await zenmux_provider.list_model_infos()
+
+    assert infos == frozenset(
+        {
+            ProviderModelInfo(
+                "bad-reasoning-capability",
+                input_modalities=frozenset({ModelInputModality.TEXT}),
+            )
+        }
+    )

@@ -12,13 +12,13 @@ from pydantic import (
     model_validator,
 )
 
-from .constants import HTTP_CONNECT_TIMEOUT_DEFAULT
+from .constants import DEFAULT_MODEL, HTTP_CONNECT_TIMEOUT_DEFAULT
+from .custom_providers import CustomProviderDefinition, decode_custom_providers
+from .model_refs import parse_model_fallbacks
 from .nim import NimSettings
 from .provider_catalog import (
     BEDROCK_DEFAULT_BASE,
-    NARAROUTE_DEFAULT_BASE,
     SUPPORTED_PROVIDER_IDS,
-    TOKENROUTER_DEFAULT_BASE,
 )
 from .reasoning import ReasoningPreference
 
@@ -37,6 +37,23 @@ OptionalNonEmptyString = Annotated[
     NonEmptyString | None,
     BeforeValidator(_empty_to_none),
 ]
+OptionalModelFallbacks = Annotated[
+    tuple[NonEmptyString, ...] | None,
+    BeforeValidator(parse_model_fallbacks),
+]
+
+
+def _validate_model_ref(value: str) -> str:
+    provider, separator, model = value.partition("/")
+    if not separator or not provider:
+        raise ValueError(
+            "Model must be prefixed with provider type. "
+            f"Valid providers: {', '.join(SUPPORTED_PROVIDER_IDS)}. "
+            "Format: provider_type/model/name"
+        )
+    if not model:
+        raise ValueError("Model reference must include a non-empty model suffix.")
+    return value
 
 
 class Settings(BaseModel):
@@ -46,6 +63,52 @@ class Settings(BaseModel):
         validate_default=True,
         populate_by_name=True,
         extra="ignore",
+        hide_input_in_errors=True,
+    )
+
+    custom_providers: Annotated[
+        tuple[CustomProviderDefinition, ...], BeforeValidator(decode_custom_providers)
+    ] = Field(default=(), validation_alias="FCC_CUSTOM_PROVIDERS")
+
+    @property
+    def provider_ids(self) -> tuple[str, ...]:
+        return (
+            *SUPPORTED_PROVIDER_IDS,
+            *(item.provider_id for item in self.custom_providers),
+        )
+
+    def custom_provider(self, provider_id: str) -> CustomProviderDefinition | None:
+        return next(
+            (item for item in self.custom_providers if item.provider_id == provider_id),
+            None,
+        )
+
+    @model_validator(mode="after")
+    def validate_provider_references(self) -> Settings:
+        ids = [item.provider_id for item in self.custom_providers]
+        names = [item.display_name.casefold() for item in self.custom_providers]
+        if len(ids) != len(set(ids)) or len(names) != len(set(names)):
+            raise ValueError("Custom provider names and IDs must be unique")
+        for field in (
+            "model",
+            "model_fable",
+            "model_opus",
+            "model_sonnet",
+            "model_haiku",
+            "model_fallbacks",
+        ):
+            value = getattr(self, field)
+            refs = value if isinstance(value, tuple) else (value,) if value else ()
+            for ref in refs:
+                if ref.partition("/")[0] not in self.provider_ids:
+                    raise ValueError(
+                        f"{field.upper()}: Invalid provider in model reference"
+                    )
+        return self
+
+    # ==================== OpenAI Platform API ====================
+    openai_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="OPENAI_API_KEY"
     )
 
     # ==================== Azure OpenAI ====================
@@ -126,11 +189,6 @@ class Settings(BaseModel):
         default=None, validation_alias="COHERE_API_KEY"
     )
 
-    # ==================== GitHub Models ====================
-    github_models_token: OptionalNonEmptyString = Field(
-        default=None, validation_alias="GITHUB_MODELS_TOKEN"
-    )
-
     # ==================== SambaNova Cloud ====================
     sambanova_api_key: OptionalNonEmptyString = Field(
         default=None, validation_alias="SAMBANOVA_API_KEY"
@@ -150,18 +208,45 @@ class Settings(BaseModel):
     tokenrouter_api_key: OptionalNonEmptyString = Field(
         default=None, validation_alias="TOKENROUTER_API_KEY"
     )
-    tokenrouter_base_url: NonEmptyString = Field(
-        default=TOKENROUTER_DEFAULT_BASE,
-        validation_alias="TOKENROUTER_BASE_URL",
-    )
 
     # ==================== NaraRoute Config ====================
     nararoute_api_key: OptionalNonEmptyString = Field(
         default=None, validation_alias="NARAROUTE_API_KEY"
     )
-    nararoute_base_url: NonEmptyString = Field(
-        default=NARAROUTE_DEFAULT_BASE,
-        validation_alias="NARAROUTE_BASE_URL",
+
+    # ==================== Poolside AI (OpenAI-compatible) ====================
+    poolside_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="POOLSIDE_API_KEY"
+    )
+
+    # ==================== LLM7.io (OpenAI-compatible) ====================
+    llm7_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="LLM7_API_KEY"
+    )
+
+    # ==================== Lightning AI (OpenAI-compatible) ====================
+    lightning_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="LIGHTNING_API_KEY"
+    )
+
+    # ==================== Experiential Labs (OpenAI-compatible) ====================
+    experiential_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="EXPLABS_API_KEY"
+    )
+
+    # ==================== Cheaper Inference (OpenAI-compatible) ====================
+    cheaperinference_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="CHEAPER_INFERENCE_API_KEY"
+    )
+
+    # ==================== OrcaRouter (OpenAI-compatible gateway) ====================
+    orcarouter_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ORCAROUTER_API_KEY"
+    )
+
+    # ==================== xKiro (OpenAI-compatible gateway) ====================
+    xkiro_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="XKIRO_API_KEY"
     )
 
     # ==================== Fireworks AI Config ====================
@@ -208,6 +293,23 @@ class Settings(BaseModel):
     # ==================== xAI / Grok (OpenAI-compatible) ====================
     xai_api_key: OptionalNonEmptyString = Field(
         default=None, validation_alias="XAI_API_KEY"
+    )
+
+    # ==================== Alibaba Cloud Model Studio ====================
+    anthropic_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ANTHROPIC_API_KEY"
+    )
+    anthropic_workspace_id: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ANTHROPIC_WORKSPACE_ID"
+    )
+    anthropic_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ANTHROPIC_PROXY"
+    )
+    alibaba_cloud_api_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ALIBABA_CLOUD_API_KEY"
+    )
+    alibaba_cloud_base_url: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ALIBABA_CLOUD_BASE_URL"
     )
 
     # ==================== QwenCloud Token Plan (OpenAI-compatible) ====================
@@ -270,6 +372,11 @@ class Settings(BaseModel):
         default=None, validation_alias="CEREBRAS_API_KEY"
     )
 
+    # ==================== Scaleway (OpenAI-compatible) ====================
+    scw_secret_key: OptionalNonEmptyString = Field(
+        default=None, validation_alias="SCW_SECRET_KEY"
+    )
+
     # ==================== Ollama Cloud ====================
     ollama_api_key: OptionalNonEmptyString = Field(
         default=None, validation_alias="OLLAMA_API_KEY"
@@ -315,11 +422,11 @@ class Settings(BaseModel):
     # All Claude model requests are mapped to this single model (fallback)
     # Format: provider_type/model/name
     model: NonEmptyString = Field(
-        default="nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+        default=DEFAULT_MODEL,
         validation_alias="MODEL",
     )
 
-    # Per-model overrides (optional, falls back to MODEL)
+    # Per-model overrides (optional, use MODEL when unset)
     # Each can use a different provider
     model_fable: OptionalNonEmptyString = Field(
         default=None, validation_alias="MODEL_FABLE"
@@ -333,13 +440,23 @@ class Settings(BaseModel):
     model_haiku: OptionalNonEmptyString = Field(
         default=None, validation_alias="MODEL_HAIKU"
     )
+    model_fallbacks: OptionalModelFallbacks = Field(
+        default=None,
+        validation_alias="MODEL_FALLBACKS",
+    )
 
     # ==================== Per-Provider Proxy ====================
     openai_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="OPENAI_PROXY"
     )
+    openai_api_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="OPENAI_API_PROXY"
+    )
     xai_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="XAI_PROXY"
+    )
+    alibaba_cloud_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ALIBABA_CLOUD_PROXY"
     )
     qwencloud_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="QWENCLOUD_PROXY"
@@ -425,9 +542,6 @@ class Settings(BaseModel):
     cohere_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="COHERE_PROXY"
     )
-    github_models_proxy: OptionalNonEmptyString = Field(
-        default=None, validation_alias="GITHUB_MODELS_PROXY"
-    )
     sambanova_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="SAMBANOVA_PROXY"
     )
@@ -445,6 +559,27 @@ class Settings(BaseModel):
     )
     nararoute_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="NARAROUTE_PROXY"
+    )
+    poolside_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="POOLSIDE_PROXY"
+    )
+    llm7_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="LLM7_PROXY"
+    )
+    lightning_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="LIGHTNING_PROXY"
+    )
+    experiential_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="EXPLABS_PROXY"
+    )
+    cheaperinference_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="CHEAPER_INFERENCE_PROXY"
+    )
+    orcarouter_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="ORCAROUTER_PROXY"
+    )
+    xkiro_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="XKIRO_PROXY"
     )
     fireworks_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="FIREWORKS_PROXY"
@@ -470,17 +605,30 @@ class Settings(BaseModel):
     cerebras_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="CEREBRAS_PROXY"
     )
+    scw_proxy: OptionalNonEmptyString = Field(
+        default=None, validation_alias="SCW_PROXY"
+    )
     ollama_cloud_proxy: OptionalNonEmptyString = Field(
         default=None, validation_alias="OLLAMA_CLOUD_PROXY"
     )
-
     # ==================== Provider Rate Limiting ====================
-    provider_rate_limit: int = Field(default=1, validation_alias="PROVIDER_RATE_LIMIT")
+    provider_rate_limit: int = Field(
+        default=1, gt=0, validation_alias="PROVIDER_RATE_LIMIT"
+    )
     provider_rate_window: int = Field(
-        default=2, validation_alias="PROVIDER_RATE_WINDOW"
+        default=2, gt=0, validation_alias="PROVIDER_RATE_WINDOW"
     )
     provider_max_concurrency: int = Field(
-        default=2, validation_alias="PROVIDER_MAX_CONCURRENCY"
+        default=2, gt=0, validation_alias="PROVIDER_MAX_CONCURRENCY"
+    )
+    provider_progress_timeout: float = Field(
+        default=600.0,
+        gt=0,
+        # Responses metadata adds 60 seconds before encoding this as a u64.
+        # The next representable float below 2**64 leaves more than that margin.
+        lt=float(1 << 64),
+        allow_inf_nan=False,
+        validation_alias="PROVIDER_PROGRESS_TIMEOUT",
     )
     reasoning_policy: ReasoningPreference = Field(
         default=ReasoningPreference.CLIENT,
@@ -540,9 +688,9 @@ class Settings(BaseModel):
     )
 
     # ==================== Local web server tools (web_search / web_fetch) ====================
-    # Off by default: these tools perform outbound HTTP from the proxy (SSRF risk).
+    # On by default to match Claude Code's normal web-tool availability.
     enable_web_server_tools: bool = Field(
-        default=False, validation_alias="ENABLE_WEB_SERVER_TOOLS"
+        default=True, validation_alias="ENABLE_WEB_SERVER_TOOLS"
     )
     # Comma-separated URL schemes allowed for web_fetch (default: http,https).
     web_fetch_allowed_schemes: NonEmptyString = Field(
@@ -595,7 +743,7 @@ class Settings(BaseModel):
     )
     # Device: "cpu" | "cuda" | "nvidia_nim"
     # - "cpu"/"cuda": local Whisper (requires voice_local extra: uv sync --extra voice_local)
-    # - "nvidia_nim": NVIDIA NIM Whisper API (requires voice extra: uv sync --extra voice)
+    # - "nvidia_nim": NVIDIA NIM Whisper API (included in the standard installation)
     whisper_device: NonEmptyString = Field(
         default="cpu", validation_alias="WHISPER_DEVICE"
     )
@@ -721,17 +869,19 @@ class Settings(BaseModel):
     def validate_model_format(cls, v: str | None) -> str | None:
         if v is None:
             return None
-        if "/" not in v:
-            raise ValueError(
-                f"Model must be prefixed with provider type. "
-                f"Valid providers: {', '.join(SUPPORTED_PROVIDER_IDS)}. "
-                f"Format: provider_type/model/name"
-            )
-        provider = v.split("/", 1)[0]
-        if provider not in SUPPORTED_PROVIDER_IDS:
-            supported = ", ".join(f"'{p}'" for p in SUPPORTED_PROVIDER_IDS)
-            raise ValueError(f"Invalid provider: '{provider}'. Supported: {supported}")
-        return v
+        return _validate_model_ref(v)
+
+    @field_validator("model_fallbacks")
+    @classmethod
+    def validate_model_fallbacks(
+        cls, value: tuple[str, ...] | None
+    ) -> tuple[str, ...] | None:
+        if value is None:
+            return None
+        validated = tuple(_validate_model_ref(model_ref) for model_ref in value)
+        if len(validated) != len(set(validated)):
+            raise ValueError("MODEL_FALLBACKS must not contain duplicate model refs.")
+        return validated
 
     @model_validator(mode="after")
     def check_nvidia_nim_api_key(self) -> Settings:

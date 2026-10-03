@@ -2,13 +2,14 @@
 
 from unittest.mock import AsyncMock
 
-import httpx
+import httpx2
 import pytest
 from openai import AsyncOpenAI
 
 from free_claude_code.application.model_metadata import ProviderModelInfo
 from free_claude_code.config.provider_catalog import CHUTES_DEFAULT_BASE
 from free_claude_code.core.anthropic.models import MessagesRequest
+from free_claude_code.core.model_capabilities import ModelInputModality
 from free_claude_code.core.reasoning import ReasoningPolicy
 from free_claude_code.providers.model_listing import ModelListResponseError
 from free_claude_code.providers.openai_chat import OpenAIChatProvider
@@ -31,8 +32,6 @@ def chutes_provider() -> OpenAIChatProvider:
         make_provider_config(
             api_key="test-chutes-key",
             base_url=CHUTES_DEFAULT_BASE,
-            rate_limit=10,
-            rate_window=60,
         ),
         admission=immediate_admission(provider_name="chutes"),
     )
@@ -65,7 +64,7 @@ def test_preserves_upstream_reasoning_default(
         }
     )
 
-    body = chutes_provider._build_request_body(request, reasoning=reasoning)
+    body = chutes_provider._chat._build_request_body(request, reasoning=reasoning)
 
     assert "reasoning_effort" not in body
     assert "reasoning" not in body
@@ -107,13 +106,16 @@ def test_does_not_replay_reasoning_but_preserves_tool_history(
         }
     )
 
-    body = chutes_provider._build_request_body(
+    body = chutes_provider._chat._build_request_body(
         request,
         reasoning=reasoning_for(request),
     )
 
     assistant = body["messages"][1]
-    assert assistant["content"] == "I will inspect it."
+    assert (
+        assistant["content"]
+        == "[Earlier reasoning]\nRead it first.\n\nI will inspect it."
+    )
     assert assistant["tool_calls"][0]["id"] == "toolu_1"
     assert "reasoning_content" not in assistant
     assert "reasoning" not in assistant
@@ -131,7 +133,7 @@ async def test_lists_only_semantically_agent_capable_models(
     chutes_provider._client.get = AsyncMock(
         return_value={
             "data": [
-                _catalog_model(),
+                _catalog_model(input_modalities=("text", "image")),
                 _catalog_model(
                     "plain-agent",
                     supported_features=("tools",),
@@ -153,8 +155,17 @@ async def test_lists_only_semantically_agent_capable_models(
 
     assert model_infos == frozenset(
         {
-            ProviderModelInfo(_MODEL, supports_thinking=True),
-            ProviderModelInfo("plain-agent"),
+            ProviderModelInfo(
+                _MODEL,
+                supports_thinking=True,
+                input_modalities=frozenset(
+                    {ModelInputModality.TEXT, ModelInputModality.IMAGE}
+                ),
+            ),
+            ProviderModelInfo(
+                "plain-agent",
+                input_modalities=frozenset({ModelInputModality.TEXT}),
+            ),
         }
     )
 
@@ -224,25 +235,33 @@ async def test_incomplete_record_cannot_bypass_later_metadata_validation(
 async def test_model_catalog_uses_documented_url_and_bearer_auth(
     chutes_provider: OpenAIChatProvider,
 ) -> None:
-    requests: list[httpx.Request] = []
+    requests: list[httpx2.Request] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
-        return httpx.Response(200, json={"data": [_catalog_model()]})
+        return httpx2.Response(200, json={"data": [_catalog_model()]})
 
     await chutes_provider._client.close()
     chutes_provider._client = AsyncOpenAI(
         api_key="wire-chutes-key",
         base_url=CHUTES_DEFAULT_BASE,
         max_retries=0,
-        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
     )
     try:
         model_infos = await chutes_provider.list_model_infos()
     finally:
         await chutes_provider.cleanup()
 
-    assert model_infos == frozenset({ProviderModelInfo(_MODEL, supports_thinking=True)})
+    assert model_infos == frozenset(
+        {
+            ProviderModelInfo(
+                _MODEL,
+                supports_thinking=True,
+                input_modalities=frozenset({ModelInputModality.TEXT}),
+            )
+        }
+    )
     assert len(requests) == 1
     assert str(requests[0].url) == "https://llm.chutes.ai/v1/models"
     assert requests[0].headers["authorization"] == "Bearer wire-chutes-key"

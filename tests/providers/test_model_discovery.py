@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -39,6 +39,7 @@ def _settings(
     model_opus: str | None = None,
     model_sonnet: str | None = None,
     model_haiku: str | None = None,
+    model_fallbacks: tuple[str, ...] | None = None,
     nvidia_nim_api_key: str = "",
     open_router_api_key: str = "",
     deepseek_api_key: str = "",
@@ -53,6 +54,7 @@ def _settings(
         model_opus=model_opus,
         model_sonnet=model_sonnet,
         model_haiku=model_haiku,
+        model_fallbacks=model_fallbacks,
         nvidia_nim_api_key=nvidia_nim_api_key,
         open_router_api_key=open_router_api_key,
         deepseek_api_key=deepseek_api_key,
@@ -71,7 +73,9 @@ def _manager(
     providers = providers or {}
     return ProviderRuntimeManager(
         settings,
-        runtime_factory=lambda snapshot: ProviderRuntime(snapshot, dict(providers)),
+        runtime_factory=lambda snapshot, admission_registry: ProviderRuntime(
+            snapshot, admission_registry, dict(providers)
+        ),
     )
 
 
@@ -87,7 +91,7 @@ def test_provider_catalog_contract_is_metadata_only() -> None:
 @pytest.mark.asyncio
 async def test_nim_lists_openai_compatible_model_infos() -> None:
     config = make_provider_config(api_key="test-key", base_url=NVIDIA_NIM_DEFAULT_BASE)
-    with patch("free_claude_code.providers.openai_chat.provider.AsyncOpenAI"):
+    with patch("free_claude_code.providers.openai_chat.client.AsyncOpenAI"):
         provider = NvidiaNimProvider(
             config, nim_settings=NimSettings(), admission=immediate_admission()
         )
@@ -352,14 +356,6 @@ class FakeProvider(BaseProvider):
         self.cleaned = False
         self.model_list_calls = 0
 
-    def preflight_stream(
-        self,
-        request: Any,
-        *,
-        reasoning: ReasoningPolicy = DEFAULT_REASONING_POLICY,
-    ) -> None:
-        return None
-
     async def cleanup(self) -> None:
         self.cleaned = True
 
@@ -376,7 +372,7 @@ class FakeProvider(BaseProvider):
         await self._before_model_list()
         return self._model_infos
 
-    async def stream_response(
+    async def stream_messages(
         self,
         request: Any,
         input_tokens: int = 0,
@@ -384,6 +380,22 @@ class FakeProvider(BaseProvider):
         request_id: str | None = None,
         response_model: str | None = None,
         reasoning: ReasoningPolicy = DEFAULT_REASONING_POLICY,
+        request_headers: Mapping[str, str] | None = None,
+        model_info: ProviderModelInfo | None = None,
+    ) -> AsyncIterator[str]:
+        if False:
+            yield ""
+
+    async def stream_responses(
+        self,
+        request: Any,
+        input_tokens: int = 0,
+        *,
+        request_id: str | None = None,
+        response_model: str | None = None,
+        reasoning: ReasoningPolicy = DEFAULT_REASONING_POLICY,
+        request_headers: Mapping[str, str] | None = None,
+        model_info: ProviderModelInfo | None = None,
     ) -> AsyncIterator[str]:
         if False:
             yield ""
@@ -392,7 +404,7 @@ class FakeProvider(BaseProvider):
 @pytest.mark.asyncio
 async def test_runtime_warm_caches_all_referenced_provider_models() -> None:
     settings = _settings(
-        model_opus="open_router/anthropic/claude-opus",
+        model_fallbacks=("open_router/anthropic/claude-opus",),
         nvidia_nim_api_key="nim-key",
         open_router_api_key="open-router-key",
     )
@@ -406,7 +418,7 @@ async def test_runtime_warm_caches_all_referenced_provider_models() -> None:
         },
     )
 
-    result = await runtime.warm_referenced_model_cache()
+    result = await runtime.refresh_model_list_cache()
 
     assert result.refreshed_provider_ids == ("nvidia_nim", "open_router")
     assert result.failed_provider_ids == ()
@@ -429,7 +441,7 @@ async def test_runtime_warm_treats_model_lists_as_discovery_metadata() -> None:
         {"nvidia_nim": FakeProvider(_infos("different-model"))},
     )
 
-    result = await runtime.warm_referenced_model_cache()
+    result = await runtime.refresh_model_list_cache()
 
     assert result.refreshed_provider_ids == ("nvidia_nim",)
     assert result.failed_provider_ids == ()
@@ -453,10 +465,8 @@ async def test_runtime_warm_reports_query_failures_without_blocking() -> None:
         },
     )
 
-    with patch(
-        "free_claude_code.providers.runtime.discovery.logger.warning"
-    ) as warning:
-        result = await runtime.warm_referenced_model_cache()
+    with patch("free_claude_code.runtime.provider_manager.logger.warning") as warning:
+        result = await runtime.refresh_model_list_cache()
 
     assert result.refreshed_provider_ids == ("nvidia_nim",)
     assert result.failed_provider_ids == ("open_router",)
@@ -487,7 +497,7 @@ async def test_runtime_warm_queries_referenced_providers_concurrently() -> None:
         },
     )
 
-    await asyncio.wait_for(runtime.warm_referenced_model_cache(), timeout=1.0)
+    await asyncio.wait_for(runtime.refresh_model_list_cache(), timeout=1.0)
 
 
 @pytest.mark.asyncio
@@ -503,9 +513,9 @@ async def test_startup_discovery_queries_each_successful_provider_once() -> None
         {"nvidia_nim": nim, "open_router": router},
     )
 
-    await runtime.warm_referenced_model_cache()
+    await runtime.refresh_model_list_cache()
     runtime.start_model_list_refresh()
-    refresh_task = runtime._refresh_task
+    refresh_task = runtime._current.refresh_task
     assert refresh_task is not None
     await refresh_task
 
@@ -518,16 +528,13 @@ async def test_startup_discovery_queries_each_successful_provider_once() -> None
 
 
 @pytest.mark.asyncio
-async def test_failed_startup_warm_remains_eligible_for_background_refresh() -> None:
+async def test_failed_startup_discovery_remains_eligible_for_explicit_refresh() -> None:
     settings = _settings(nvidia_nim_api_key="nim-key")
     nim = FakeProvider(error=RuntimeError("upstream unavailable"))
     runtime = _manager(settings, {"nvidia_nim": nim})
 
-    warm_result = await runtime.warm_referenced_model_cache()
-    runtime.start_model_list_refresh()
-    refresh_task = runtime._refresh_task
-    assert refresh_task is not None
-    await refresh_task
+    warm_result = await runtime.refresh_model_list_cache()
+    await runtime.refresh_model_list_cache()
 
     assert warm_result.failed_provider_ids == ("nvidia_nim",)
     assert nim.model_list_calls == 2
@@ -557,7 +564,7 @@ async def test_runtime_refresh_model_list_cache_uses_configured_remote_keys_and_
         "open_router": frozenset({"anthropic/claude-sonnet"}),
         "lmstudio": frozenset({"local-qwen"}),
     }
-    assert result.refreshed_provider_ids == ("open_router", "lmstudio")
+    assert result.refreshed_provider_ids == ("lmstudio", "open_router")
     assert result.failed_provider_ids == ()
 
 
@@ -580,7 +587,7 @@ async def test_runtime_refresh_model_list_cache_treats_vertex_project_as_configu
         "vertex": frozenset({"google/gemini-3.5-flash"})
     }
     assert result.refreshed_provider_ids == ("vertex",)
-    assert result.failed_provider_ids == ()
+    assert result.failed_provider_ids == ("nvidia_nim",)
 
 
 @pytest.mark.asyncio
@@ -618,10 +625,12 @@ def test_runtime_metadata_cache_exposes_ids_and_prefixed_infos() -> None:
     assert cache.cached_model_ids() == {
         "open_router": frozenset({"reasoning-model", "plain-model"})
     }
-    assert (
-        cache.cached_model_supports_thinking("open_router", "reasoning-model") is True
+    assert cache.cached_model_info(
+        "open_router", "reasoning-model"
+    ) == ProviderModelInfo("reasoning-model", supports_thinking=True)
+    assert cache.cached_model_info("open_router", "plain-model") == ProviderModelInfo(
+        "plain-model", supports_thinking=False
     )
-    assert cache.cached_model_supports_thinking("open_router", "plain-model") is False
     assert cache.cached_prefixed_model_infos() == (
         ProviderModelInfo("open_router/plain-model", supports_thinking=False),
         ProviderModelInfo("open_router/reasoning-model", supports_thinking=True),
@@ -648,7 +657,9 @@ def test_runtime_metadata_cache_keeps_unknown_thinking_support() -> None:
     cache.cache_model_infos("open_router", _infos("plain-model"))
 
     assert cache.cached_model_ids() == {"open_router": frozenset({"plain-model"})}
-    assert cache.cached_model_supports_thinking("open_router", "plain-model") is None
+    assert cache.cached_model_info("open_router", "plain-model") == ProviderModelInfo(
+        "plain-model"
+    )
     assert cache.cached_prefixed_model_infos() == (
         ProviderModelInfo("open_router/plain-model", supports_thinking=None),
     )

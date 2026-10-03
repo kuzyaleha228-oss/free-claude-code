@@ -7,7 +7,6 @@ from loguru import logger
 
 from free_claude_code.application.errors import UnknownProviderError
 from free_claude_code.application.ports import ProviderPort, RequestRuntimeLease
-from free_claude_code.config.provider_catalog import PROVIDER_CATALOG
 from free_claude_code.config.settings import Settings
 
 from .ports import ApiServices
@@ -23,7 +22,7 @@ def get_settings(services: ApiServices = Depends(get_services)) -> Settings:
     return services.requests.current_settings()
 
 
-def resolve_provider(
+async def resolve_provider(
     provider_type: str,
     *,
     lease: RequestRuntimeLease,
@@ -31,12 +30,12 @@ def resolve_provider(
     """Resolve a provider through one retained generation."""
     should_log_init = not lease.is_provider_cached(provider_type)
     try:
-        provider = lease.resolve_provider(provider_type)
+        provider = await lease.resolve_provider(provider_type)
     except UnknownProviderError:
         logger.error(
             "Unknown provider_type: '{}'. Supported: {}",
             provider_type,
-            ", ".join(f"'{key}'" for key in PROVIDER_CATALOG),
+            ", ".join(f"'{key}'" for key in lease.settings.provider_ids),
         )
         raise
     if should_log_init:
@@ -59,19 +58,70 @@ def require_proxy_auth(
             detail="Missing proxy authentication token",
         )
 
-    parts = authorization.strip().split(maxsplit=1)
-    if len(parts) != 2 or parts[0].casefold() != "bearer":
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid proxy authentication token",
-        )
-    token = parts[1].strip()
-
-    if not token or not secrets.compare_digest(
-        token.encode("utf-8"),
-        settings.proxy_auth_token.encode("utf-8"),
+    if not _proxy_token_matches(
+        authorization,
+        settings.proxy_auth_token,
+        require_bearer=True,
     ):
         raise HTTPException(
             status_code=401,
             detail="Invalid proxy authentication token",
         )
+
+
+def require_anthropic_proxy_auth(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> None:
+    """Require Bearer or Anthropic ``x-api-key`` proxy authentication."""
+    if not settings.proxy_auth_enabled:
+        return
+
+    authorization = request.headers.get("authorization")
+    if authorization is not None:
+        if _proxy_token_matches(
+            authorization,
+            settings.proxy_auth_token,
+            require_bearer=True,
+        ):
+            return
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid proxy authentication token",
+        )
+
+    x_api_key = request.headers.get("x-api-key")
+    if x_api_key is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing proxy authentication token",
+        )
+
+    if not _proxy_token_matches(
+        x_api_key,
+        settings.proxy_auth_token,
+        require_bearer=False,
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid proxy authentication token",
+        )
+
+
+def _proxy_token_matches(
+    credential: str,
+    configured_token: str,
+    *,
+    require_bearer: bool,
+) -> bool:
+    token = credential.strip()
+    if require_bearer:
+        parts = token.split(maxsplit=1)
+        if len(parts) != 2 or parts[0].casefold() != "bearer":
+            return False
+        token = parts[1].strip()
+
+    return bool(token) and secrets.compare_digest(
+        token.encode("utf-8"),
+        configured_token.encode("utf-8"),
+    )

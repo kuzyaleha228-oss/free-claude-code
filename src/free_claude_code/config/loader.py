@@ -1,17 +1,30 @@
 """Canonical managed-config loading, precedence, provenance, and caching."""
 
 import os
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from types import MappingProxyType
 
 from free_claude_code.core.interprocess_lock import InterprocessFileLock
 
-from .env_files import ANTHROPIC_AUTH_TOKEN_ENV, dotenv_values_from_file
-from .env_migrations import consolidate_managed_config, settings_env_keys
+from .env_files import (
+    ANTHROPIC_AUTH_TOKEN_ENV,
+    FCC_CONFIG_SCHEMA_ENV,
+    dotenv_values_from_file,
+)
+from .env_migrations import (
+    CONFIG_SCHEMA_VERSION,
+    atomic_write_managed_config,
+    consolidate_managed_config,
+    settings_env_keys,
+)
+from .model_refs import normalize_retired_model_settings
 from .paths import config_lock_path, managed_env_path
+from .provider_proxies import invalid_provider_proxy_keys
 from .settings import Settings
 
 
@@ -31,34 +44,104 @@ class SettingsSnapshot:
     sources: Mapping[str, ConfigSource]
 
 
-def resolve_settings_snapshot(
-    env: Mapping[str, str] | None = None,
-) -> SettingsSnapshot:
-    """Resolve one uncached Settings snapshot from managed and process state."""
+@dataclass(frozen=True, slots=True)
+class ManagedConfigSnapshot:
+    """One disk/environment capture and its validated effective settings."""
 
-    process = env if env is not None else os.environ
-    lock = InterprocessFileLock(config_lock_path())
-    if not lock.acquire(wait=True, timeout=10.0):
-        raise TimeoutError(
-            f"Could not acquire managed-config lock: {config_lock_path()}"
+    settings: Settings
+    sources: Mapping[str, ConfigSource]
+    managed: Mapping[str, str]
+    process: Mapping[str, str]
+    path: Path
+
+
+class ManagedConfigStore:
+    """Own initialization and coordinate fresh reads with atomic writes."""
+
+    def __init__(self) -> None:
+        self.path = managed_env_path()
+        self._lock_path = config_lock_path()
+
+    @contextmanager
+    def _storage_lock(self) -> Iterator[None]:
+        lock = InterprocessFileLock(self._lock_path)
+        if not lock.acquire(wait=True, timeout=10.0):
+            raise TimeoutError(
+                f"Could not acquire managed-config lock: {self._lock_path}"
+            )
+        try:
+            yield
+        finally:
+            lock.release()
+
+    def initialize(self, env: Mapping[str, str] | None = None) -> None:
+        with self._storage_lock():
+            consolidate_managed_config(dict(os.environ if env is None else env))
+
+    def _read_managed(self) -> dict[str, str]:
+        if not self.path.is_file():
+            raise ValueError(
+                "Managed configuration is missing; initialize it before reading."
+            )
+        managed = dotenv_values_from_file(self.path)
+        schema = managed.get(FCC_CONFIG_SCHEMA_ENV)
+        if schema != CONFIG_SCHEMA_VERSION:
+            raise ValueError(
+                f"Managed config {self.path} uses unsupported schema {schema!r}; "
+                f"initialize with a compatible FCC version (supports {CONFIG_SCHEMA_VERSION})."
+            )
+        return managed
+
+    def read(self, env: Mapping[str, str] | None = None) -> ManagedConfigSnapshot:
+        process = dict(os.environ if env is None else env)
+        # Windows readers deny replacement while their file handles remain open.
+        with self._storage_lock():
+            managed = self._read_managed()
+        snapshot = compose_settings_snapshot(managed, process)
+        return ManagedConfigSnapshot(
+            snapshot.settings,
+            snapshot.sources,
+            MappingProxyType(managed),
+            MappingProxyType(process),
+            self.path,
         )
-    try:
-        consolidate_managed_config(process)
-    finally:
-        lock.release()
 
-    managed_path = managed_env_path()
-    managed = dotenv_values_from_file(managed_path) if managed_path.is_file() else {}
-    return compose_settings_snapshot(managed, process)
+    def commit(self, values: Mapping[str, str]) -> None:
+        with self._storage_lock():
+            self._read_managed()  # Never overwrite a newer schema or missing storage.
+            atomic_write_managed_config(values, path=self.path)
+
+    def repair_invalid_provider_proxies(
+        self,
+        env: Mapping[str, str] | None = None,
+    ) -> tuple[str, ...]:
+        process = dict(os.environ if env is None else env)
+        if not self.path.is_file():
+            return ()
+        with self._storage_lock():
+            if not self.path.is_file():
+                return ()
+            managed = self._read_managed()
+            removed = tuple(
+                key
+                for key in invalid_provider_proxy_keys(managed)
+                if key not in process
+            )
+            if removed:
+                for key in removed:
+                    managed.pop(key)
+                atomic_write_managed_config(managed, path=self.path)
+            return removed
 
 
 def compose_settings_snapshot(
     managed: Mapping[str, str],
-    env: Mapping[str, str] | None = None,
+    env: Mapping[str, str],
 ) -> SettingsSnapshot:
     """Validate prospective managed values with live process precedence."""
 
-    process = env if env is not None else os.environ
+    process = normalize_retired_model_settings(env, preserve_empty_overrides=True)
+    managed = normalize_retired_model_settings(managed, preserve_empty_overrides=False)
     aliases = _settings_aliases()
     recognized = settings_env_keys()
     values: dict[str, str] = {
@@ -69,18 +152,13 @@ def compose_settings_snapshot(
         if name := aliases.get(key):
             sources[name] = ConfigSource.MANAGED
 
-    managed_owns_token = bool(values.get(ANTHROPIC_AUTH_TOKEN_ENV, "").strip())
     for key in recognized:
         if key not in process:
             continue
-        if key == ANTHROPIC_AUTH_TOKEN_ENV and managed_owns_token:
+        # Servers and independently opened clients share the managed token/default.
+        if key == ANTHROPIC_AUTH_TOKEN_ENV:
             continue
-        value = process[key]
-        if key == ANTHROPIC_AUTH_TOKEN_ENV and not value.strip():
-            values.pop(key, None)
-            sources[aliases[key]] = ConfigSource.DEFAULT
-            continue
-        values[key] = value
+        values[key] = process[key]
         if name := aliases.get(key):
             sources[name] = ConfigSource.PROCESS
 
@@ -95,7 +173,9 @@ def compose_settings_snapshot(
 def get_settings() -> Settings:
     """Return the process-wide cached settings model."""
 
-    return resolve_settings_snapshot().settings
+    store = ManagedConfigStore()
+    store.initialize()
+    return store.read().settings
 
 
 def clear_settings_cache() -> None:
