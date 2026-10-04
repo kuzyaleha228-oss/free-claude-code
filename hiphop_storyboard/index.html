@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SUBWAY PROPHETS '94 — Продакшн-Библия и Раскадровка Хип-Хоп Клипа</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-obsidian: #0b0c10;
+      --bg-slate: #13151c;
+      --bg-card: #181b24;
+      --bg-elevated: #202431;
+      --border-subtle: rgba(255, 255, 255, 0.09);
+      --border-gold: rgba(229, 155, 39, 0.45);
+      --text-primary: #f4f4f6;
+      --text-secondary: #a6adbb;
+      --text-muted: #6e7687;
+      --accent-gold: #e59b27;
+      --accent-amber: #f5b942;
+      --accent-cyan: #00c2e0;
+      --accent-magenta: #e0246a;
+      --accent-crimson: #d62828;
+      --accent-olive: #6b7b4c;
+      --font-display: 'Oswald', 'Bebas Neue', Impact, sans-serif;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-obsidian);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 10%, rgba(229, 155, 39, 0.08), transparent 35%),
+        radial-gradient(circle at 85% 20%, rgba(0, 194, 224, 0.06), transparent 35%),
+        radial-gradient(circle at 50% 85%, rgba(224, 36, 106, 0.05), transparent 40%);
+    }
+
+    /* Subtle 35mm film grain overlay */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* Top Studio Production Bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11, 12, 16, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.75rem 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-gold), #b86b11);
+      color: #090a0d;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 0 18px rgba(229, 155, 39, 0.35);
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      display: block;
+    }
+
+    /* Audio Beat Control in Header */
+    .audio-deck {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg-slate);
+      border: 1px solid var(--border-subtle);
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+    }
+
+    .beat-btn {
+      background: var(--bg-elevated);
+      color: var(--accent-amber);
+      border: 1px solid var(--border-gold);
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.2s ease;
+    }
+
+    .beat-btn:hover {
+      background: var(--accent-gold);
+      color: #0b0c10;
+    }
+
+    .beat-btn.playing {
+      background: var(--accent-magenta);
+      border-color: var(--accent-magenta);
+      color: #fff;
+      box-shadow: 0 0 16px rgba(224, 36, 106, 0.5);
+    }
+
+    .vu-meter {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 22px;
+      width: 64px;
+    }
+
+    .vu-bar {
+      flex: 1;
+      background: var(--accent-gold);
+      height: 4px;
+      border-radius: 1px;
+      transition: height 0.08s ease;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 0.4rem;
+      background: var(--bg-slate);
+      padding: 0.35rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      overflow-x: auto;
+    }
+
+    .nav-tab {
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+      padding: 0.5rem 0.95rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s ease;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .nav-tab.active {
+      background: var(--accent-gold);
+      color: #0b0c10;
+      font-weight: 700;
+      box-shadow: 0 2px 10px rgba(229, 155, 39, 0.3);
+    }
+
+    /* Hero Banner */
+    .hero {
+      max-width: 1440px;
+      margin: 1.5rem auto 0;
+      padding: 0 1.75rem;
+    }
+
+    .hero-card {
+      background: linear-gradient(125deg, rgba(24, 27, 36, 0.96) 0%, rgba(15, 18, 25, 0.98) 100%);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-gold);
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 1.75rem;
+      align-items: center;
+    }
+
+    @media (max-width: 980px) {
+      .hero-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.45rem;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.85rem, 3.2vw, 2.75rem);
+      line-height: 1.08;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      margin-bottom: 0.65rem;
+    }
+
+    .hero-title span {
+      color: var(--accent-amber);
+    }
+
+    .hero-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      max-width: 68ch;
+    }
+
+    .scene-launch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+      padding: 0.62rem 0.82rem;
+      border: 1px solid var(--border-gold);
+      border-radius: 7px;
+      background: rgba(229, 155, 39, 0.08);
+      color: var(--text-primary);
+      text-decoration: none;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .scene-launch:hover {
+      background: rgba(229, 155, 39, 0.16);
+      border-color: var(--accent-amber);
+      transform: translateY(-1px);
+    }
+
+    .scene-launch-icon {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--accent-gold);
+      color: #111;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .scene-launch b { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-amber); }
+    .scene-launch small { display: block; color: var(--text-secondary); font-size: 0.72rem; margin-top: 0.1rem; }
+
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.65rem;
+    }
+
+    .spec-box {
+      background: rgba(11, 12, 16, 0.65);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+    }
+
+    .spec-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .spec-val {
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 0.15rem;
+      display: block;
+    }
+
+    /* Main Container & Sections */
+    .main-container {
+      max-width: 1440px;
+      margin: 1.5rem auto 4rem;
+      padding: 0 1.75rem;
+    }
+
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.65rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .section-sub {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+    }
+
+    /* CHARACTER CARDS GRID */
+    .char-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1100px) {
+      .char-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .char-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .char-card:hover {
+      border-color: var(--border-gold);
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 720px) {
+      .char-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .char-visual {
+      position: relative;
+      background: #08090c;
+      min-height: 440px;
+      overflow: hidden;
+      cursor: zoom-in;
+    }
+
+    .char-visual img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      transition: transform 0.4s ease;
+    }
+
+    .char-card:hover .char-visual img {
+      transform: scale(1.04);
+    }
+
+    .char-pillar-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(11, 12, 16, 0.88);
+      border: 1px solid var(--accent-gold);
+      color: var(--accent-amber);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.28rem 0.6rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .char-silhouette-badge {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      background: rgba(11, 12, 16, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-subtle);
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+
+    .char-body {
+      padding: 1.35rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.9rem;
+    }
+
+    .char-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .char-alias {
+      font-family: var(--font-display);
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1.05;
+    }
+
+    .char-realname {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.2rem;
+    }
+
+    .char-sfx-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.38rem 0.7rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .char-sfx-btn:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .char-bio {
+      font-size: 0.87rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .char-meta-list {
+      display: grid;
+      gap: 0.45rem;
+      background: rgba(11, 12, 16, 0.55);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      font-size: 0.82rem;
+    }
+
+    .char-meta-item strong {
+      color: var(--accent-amber);
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      margin-right: 0.35rem;
+    }
+
+    .palette-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .palette-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-right: 0.25rem;
+    }
+
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: var(--bg-obsidian);
+      border: 1px solid var(--border-subtle);
+      padding: 0.22rem 0.5rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+
+    .swatch:hover {
+      border-color: var(--text-primary);
+    }
+
+    .swatch-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* STORYBOARD GRID & FILTERS */
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--accent-amber);
+      border-color: var(--border-gold);
+    }
+
+    .storyboard-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 980px) {
+      .storyboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .shot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .shot-card:hover {
+      border-color: var(--border-gold);
+      transform: translateY(-2px);
+    }
+
+    .shot-viewport {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #07080b;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .shot-viewport img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.45s ease;
+    }
+
+    .shot-card:hover .shot-viewport img {
+      transform: scale(1.03);
+    }
+
+    /* Viewfinder Rule-of-Thirds & Anamorphic Crop Overlay */
+    .viewfinder-hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 1px solid rgba(229, 155, 39, 0.35);
+      margin: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px 12px;
+    }
+
+    .vf-top, .vf-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.95);
+    }
+
+    .vf-tag {
+      background: rgba(9, 10, 14, 0.85);
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: var(--accent-amber);
+      font-weight: 700;
+    }
+
+    .vf-lens {
+      background: rgba(0, 194, 224, 0.18);
+      border: 1px solid rgba(0, 194, 224, 0.5);
+      color: #7ce8ff;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .shot-content {
+      padding: 1.25rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      flex: 1;
+    }
+
+    .shot-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    .shot-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .shot-tc {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--accent-cyan);
+      white-space: nowrap;
+    }
+
+    .shot-specs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      background: rgba(11, 12, 16, 0.6);
+      border: 1px solid var(--border-subtle);
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+
+    .shot-spec-item span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+    }
+
+    .shot-spec-item strong {
+      color: var(--text-primary);
+    }
+
+    .shot-action {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+    }
+
+    .shot-audio-box {
+      margin-top: auto;
+      background: rgba(229, 155, 39, 0.07);
+      border-left: 3px solid var(--accent-gold);
+      padding: 0.55rem 0.8rem;
+      border-radius: 0 6px 6px 0;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: #f3d292;
+    }
+
+    /* LIVE ANIMATIC PLAYER */
+    .animatic-stage {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+    }
+
+    @media (max-width: 1080px) {
+      .animatic-stage {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .animatic-screen-wrap {
+      position: relative;
+      background: #050608;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .animatic-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform-origin: center center;
+      transition: filter 0.3s ease;
+    }
+
+    /* Camera Motion Keyframes for Animatic */
+    .cam-dolly-in { animation: camDollyIn 4.5s ease-out forwards; }
+    .cam-dutch-zoom { animation: camDutchZoom 4.5s ease-in-out forwards; }
+    .cam-fisheye-pulse { animation: camFisheye 4.5s ease-in-out infinite alternate; }
+    .cam-steadicam { animation: camSteadicam 4.5s linear forwards; }
+    .cam-whip-pan { animation: camWhipPan 4.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .cam-arc-freeze { animation: camArcFreeze 4.5s steps(14, end) forwards; }
+    .cam-crane-up { animation: camCraneUp 4.5s ease-out forwards; }
+
+    @keyframes camDollyIn {
+      0% { transform: scale(1) translate(0, 0); }
+      100% { transform: scale(1.14) translate(-1.5%, -1%); }
+    }
+    @keyframes camDutchZoom {
+      0% { transform: scale(1.16) rotate(-4deg); }
+      100% { transform: scale(1.02) rotate(2deg); }
+    }
+    @keyframes camFisheye {
+      0% { transform: scale(1.04) translateY(0px); }
+      50% { transform: scale(1.12) translateY(-6px) rotate(-1.5deg); }
+      100% { transform: scale(1.07) translateY(4px) rotate(1.5deg); }
+    }
+    @keyframes camSteadicam {
+      0% { transform: scale(1.08) translateX(-2%); }
+      100% { transform: scale(1.02) translateX(2%); }
+    }
+    @keyframes camWhipPan {
+      0% { transform: scale(1.12) translateX(-4%); }
+      100% { transform: scale(1.04) translateX(3%); }
+    }
+    @keyframes camArcFreeze {
+      0% { transform: scale(1.15) rotate(-3deg); }
+      65% { transform: scale(1.03) rotate(1deg); }
+      100% { transform: scale(1.03) rotate(0deg); }
+    }
+    @keyframes camCraneUp {
+      0% { transform: scale(1.14) translateY(3%); }
+      100% { transform: scale(1.0) translateY(-2%); }
+    }
+
+    .animatic-letterbox-top, .animatic-letterbox-bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 7%;
+      background: #040507;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+    }
+
+    .animatic-letterbox-top { top: 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .animatic-letterbox-bottom { bottom: 0; border-top: 1px solid rgba(255,255,255,0.08); }
+
+    .animatic-subtitle {
+      position: absolute;
+      bottom: 11%;
+      left: 8%;
+      right: 8%;
+      text-align: center;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .animatic-subtitle span {
+      background: rgba(8, 9, 12, 0.88);
+      border: 1px solid var(--border-gold);
+      color: #ffe299;
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      display: inline-block;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+    }
+
+    .animatic-sidebar {
+      padding: 1.4rem;
+      background: var(--bg-slate);
+      border-left: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .animatic-controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      flex: 1;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 0.6rem 0.85rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .ctrl-btn.primary {
+      background: var(--accent-gold);
+      color: #090a0d;
+      border-color: var(--accent-gold);
+    }
+
+    .timeline-strip {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0.4rem;
+      margin-top: 1rem;
+    }
+
+    .tl-thumb {
+      background: var(--bg-card);
+      border: 2px solid var(--border-subtle);
+      border-radius: 6px;
+      overflow: hidden;
+      cursor: pointer;
+      aspect-ratio: 16/9;
+      position: relative;
+    }
+
+    .tl-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.6;
+    }
+
+    .tl-thumb.active {
+      border-color: var(--accent-amber);
+    }
+
+    .tl-thumb.active img {
+      opacity: 1;
+    }
+
+    .tl-num {
+      position: absolute;
+      bottom: 3px;
+      right: 5px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: rgba(0,0,0,0.8);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* TOP-DOWN CAMERA BLOCKING BLUEPRINTS */
+    .blueprint-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 920px) {
+      .blueprint-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .bp-scene-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .bp-scene-btn {
+      text-align: left;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .bp-scene-btn.active, .bp-scene-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--accent-cyan);
+    }
+
+    .bp-canvas-card {
+      background: #0c131f;
+      border: 1px solid rgba(0, 194, 224, 0.35);
+      border-radius: 12px;
+      padding: 1.25rem;
+      background-image:
+        linear-gradient(rgba(0, 194, 224, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 194, 224, 0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* PRODUCTION SCRIPT TABLE */
+    .script-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+
+    table.script-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    table.script-table th {
+      background: var(--bg-slate);
+      color: var(--accent-amber);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    table.script-table td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: top;
+      color: var(--text-secondary);
+    }
+
+    table.script-table tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* Lightbox Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 6, 9, 0.92);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-box {
+      max-width: 1180px;
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(11, 12, 16, 0.9);
+      color: #fff;
+      border: 1px solid var(--border-subtle);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--accent-gold);
+      color: #090a0d;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 3000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media print {
+      .topbar, .filter-bar, .audio-deck { display: none !important; }
+      .tab-panel { display: block !important; margin-bottom: 2rem; }
+      body { background: #fff; color: #000; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP STUDIO BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-badge">PROD. BIBLE '94</span>
+      <div>
+        <div class="brand-title">SUBWAY PROPHETS // ПОСЛЕДНИЙ ВАГОН ДО РАССВЕТА</div>
+        <span class="brand-sub">РЕЖИССЁРСКАЯ РАСКАДРОВКА И КАРТЫ ПЕРСОНАЖЕЙ • 92 BPM BOOM-BAP</span>
+      </div>
+    </div>
+
+    <nav class="nav-tabs" role="tablist">
+      <button class="nav-tab active" onclick="switchTab('characters')">01 // ПЕРСОНАЖИ (4)</button>
+      <button class="nav-tab" onclick="switchTab('storyboard')">02 // РАСКАДРОВКА (8 КАДРОВ)</button>
+      <button class="nav-tab" onclick="switchTab('animatic')">03 // АНИМАТИК-ПЛЕЕР</button>
+      <button class="nav-tab" onclick="switchTab('blueprints')">04 // СХЕМЫ КАМЕР (TOP-DOWN)</button>
+      <button class="nav-tab" onclick="switchTab('script')">05 // ЭКСПЛИКАЦИЯ / ТАБЛИЦА</button>
+    </nav>
+
+    <div class="audio-deck">
+      <button id="beatToggleBtn" class="beat-btn" onclick="toggleBoomBapBeat()">
+        <span>▶</span> 92 BPM BOOM-BAP БИТ
+      </button>
+      <div class="vu-meter" id="vuMeter">
+        <div class="vu-bar"></div><div class="vu-bar"></div><div class="vu-bar"></div><div class="vu-bar"></div>
+        <div class="vu-bar"></div><div class="vu-bar"></div><div class="vu-bar"></div><div class="vu-bar"></div>
+        <div class="vu-bar"></div><div class="vu-bar"></div><div class="vu-bar"></div><div class="vu-bar"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PROJECT HERO SUMMARY -->
+  <section class="hero">
+    <div class="hero-card">
+      <div>
+        <div class="hero-eyebrow">ОРИГИНАЛЬНЫЙ ПРОДАКШН-ПАКЕТ • ЗОЛОТАЯ ЭРА ХИП-ХОПА (1994)</div>
+        <h1 class="hero-title">КОМАНДА <span>«SUBWAY PROPHETS»</span>: ЧЕТЫРЕ СТИХИИ ОДНОЙ НОЧИ</h1>
+        <p class="hero-desc">
+          Профессиональная разработка четырёх оригинальных хип-хоп персонажей (MC, Битмейкер, Граффити-райтер, Би-бой) и покадровая режиссёрская раскадровка музыкального клипа. Спроектировано с соблюдением контраста силуэтов, оптики 16mm Fisheye / 35mm Anamorphic и цветовой драматургии плёнки Kodak Vision 500T.
+        </p>
+        <a class="scene-launch" href="scene_01.html">
+          <span class="scene-launch-icon" aria-hidden="true">▶</span>
+          <span><b>ОТКРЫТЬ СЦЕНУ 01 · 18 СЕКУНД</b><small>Покадровый аниматик, камера и оригинальный звуковой скетч</small></span>
+        </a>
+      </div>
+      <div class="specs-grid">
+        <div class="spec-box">
+          <span class="spec-label">ТЕМП / СЕКВЕНСОР</span>
+          <span class="spec-val">92.0 BPM • AKAI MPC3000 (62% Swing)</span>
+        </div>
+        <div class="spec-box">
+          <span class="spec-label">ФОРМАТ И ОПТИКА</span>
+          <span class="spec-val">2.39:1 Anamorphic + 16mm Fisheye</span>
+        </div>
+        <div class="spec-box">
+          <span class="spec-label">КОНТРАСТ СИЛУЭТОВ</span>
+          <span class="spec-val">Треугольник • Квадрат • Трапеция • Ромб</span>
+        </div>
+        <div class="spec-box">
+          <span class="spec-label">ЦВЕТОВАЯ СХЕМА</span>
+          <span class="spec-val">Sodium Gold #E59B27 vs Cyan #00C2E0</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="main-container">
+
+    <!-- TAB 1: CHARACTER SHEETS -->
+    <section id="tab-characters" class="tab-panel active">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">01 // БИБЛИЯ ПЕРСОНАЖЕЙ (CHARACTER CONCEPT SHEETS)</h2>
+          <p class="section-sub">Нажмите на портрет для полноэкранного просмотра концепт-арта, на цветовой код — чтобы скопировать HEX, или протестируйте звуковой почерк каждого героя.</p>
+        </div>
+      </div>
+
+      <div class="char-grid" id="charGrid"></div>
+    </section>
+
+    <!-- TAB 2: STORYBOARD GRID -->
+    <section id="tab-storyboard" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">02 // ВИЗУАЛЬНАЯ РАСКАДРОВКА (DIRECTOR'S STORYBOARD)</h2>
+          <p class="section-sub">8 ключевых сцен клипа с точным указанием фокусного расстояния, движения камеры, световой схемы и звукового дизайна.</p>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterShots('all', this)">ВСЕ СЦЕНЫ (8)</button>
+          <button class="filter-btn" onclick="filterShots('Kilo-Watt', this)">MC KILO-WATT</button>
+          <button class="filter-btn" onclick="filterShots('Rusty Needle', this)">DJ RUSTY NEEDLE</button>
+          <button class="filter-btn" onclick="filterShots('Nova', this)">NOVA (GRAFFITI)</button>
+          <button class="filter-btn" onclick="filterShots('Gravity', this)">B-BOY GRAVITY</button>
+        </div>
+      </div>
+
+      <div class="storyboard-grid" id="storyboardGrid"></div>
+    </section>
+
+    <!-- TAB 3: LIVE ANIMATIC PLAYER -->
+    <section id="tab-animatic" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">03 // РЕЖИССЁРСКИЙ АНИМАТИК-ПЛЕЕР (SYNCHRONIZED 92 BPM ANIMATIC)</h2>
+          <p class="section-sub">Демонстрация раскадровки в движении: эмуляция работы камеры (Dolly, Fisheye, Whip Pan, Step-Printing) синхронно с генератором 90s Boom-Bap бита.</p>
+        </div>
+      </div>
+
+      <div class="animatic-stage">
+        <div>
+          <div class="animatic-screen-wrap" id="animaticScreen">
+            <div class="animatic-letterbox-top">
+              <span id="animSceneLabel">SCENE 01 // SUBWAY SOUND HUNT</span>
+              <span id="animLensLabel">OPTICS: 35mm ANAMORPHIC f/2.0</span>
+              <span id="animTimecode">TC 00:00:00:00</span>
+            </div>
+            <img id="animaticImage" class="animatic-img cam-dolly-in" src="assets/frame_01_sound_hunt.jpg" alt="Animatic Frame" />
+            <div class="animatic-subtitle">
+              <span id="animSubtitleText">[SFX: Грохот поезда метро и визг тормозов -> Запись на кассетник Sony]</span>
+            </div>
+            <div class="animatic-letterbox-bottom">
+              <span id="animCamMove">CAMERA: SLOW DOLLY IN + TRAIN VIBRATION</span>
+              <span id="animLightInfo">LIGHT: 3200K TUNGSTEN TRAIN WINDOWS</span>
+            </div>
+          </div>
+          <div class="timeline-strip" id="animTimeline"></div>
+        </div>
+
+        <aside class="animatic-sidebar">
+          <div class="animatic-controls">
+            <button id="animPlayBtn" class="ctrl-btn primary" onclick="toggleAnimaticPlayback()">▶ ЗАПУСТИТЬ АНИМАТИК + ЗВУК</button>
+            <button class="ctrl-btn" onclick="stepAnimatic(-1)">◀ ПРЕД.</button>
+            <button class="ctrl-btn" onclick="stepAnimatic(1)">СЛЕД. ▶</button>
+          </div>
+
+          <div class="spec-box">
+            <span class="spec-label">ТЕКУЩИЙ КАДР И ТАЙМКОД</span>
+            <span class="spec-val" id="sideShotTitle">КАДР 01 — ОХОТА ЗА ЗВУКОМ (00:00–00:18)</span>
+          </div>
+
+          <div class="spec-box">
+            <span class="spec-label">ДЕЙСТВИЕ В КАДРЕ (ACTION)</span>
+            <p id="sideShotAction" style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.35rem;"></p>
+          </div>
+
+          <div class="spec-box">
+            <span class="spec-label">РАБОТА КАМЕРЫ И ЛИНЗЫ</span>
+            <p id="sideShotCamera" style="font-size:0.84rem; color:var(--accent-cyan); font-family:var(--font-mono); margin-top:0.35rem;"></p>
+          </div>
+
+          <div class="spec-box">
+            <span class="spec-label">ЗВУКОВАЯ ПАРТИТУРА И ТЕКСТ</span>
+            <p id="sideShotAudio" style="font-size:0.84rem; color:var(--accent-amber); font-family:var(--font-mono); margin-top:0.35rem;"></p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- TAB 4: TOP-DOWN CAMERA BLOCKING BLUEPRINTS -->
+    <section id="tab-blueprints" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">04 // ОПЕРАТОРСКИЕ СХЕМЫ ПЛОЩАДКИ СВЕРХУ (CAMERA & LIGHTING BLOCKING)</h2>
+          <p class="section-sub">Интерактивные архитектурные планы съёмочной площадки для каждой сцены: размещение героев, векторы движения камеры, угол поля зрения (FOV) и свет.</p>
+        </div>
+      </div>
+
+      <div class="blueprint-layout">
+        <div class="bp-scene-list" id="bpSceneList"></div>
+        <div class="bp-canvas-card" id="bpCanvasContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: FULL PRODUCTION SCRIPT TABLE -->
+    <section id="tab-script" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">05 // СВОДНАЯ РЕЖИССЁРСКАЯ ЭКСПЛИКАЦИЯ (PRODUCTION SHOT LIST)</h2>
+          <p class="section-sub">Готовая производственная таблица для съёмочной группы и анимационного цеха.</p>
+        </div>
+        <button class="beat-btn" onclick="window.print()">🖨 ПЕЧАТЬ / ЭКСПОРТ В PDF</button>
+      </div>
+
+      <div class="script-table-wrap">
+        <table class="script-table" id="scriptTable">
+          <thead>
+            <tr>
+              <th>Кадр / Сцена</th>
+              <th>Таймкод</th>
+              <th>Персонажи</th>
+              <th>План и Оптика</th>
+              <th>Движение камеры</th>
+              <th>Свет и Палитра</th>
+              <th>Действие в кадре</th>
+              <th>Звук / Лирика</th>
+            </tr>
+          </thead>
+          <tbody id="scriptTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- LIGHTBOX MODAL -->
+  <div class="modal-backdrop" id="lightboxModal" onclick="closeLightbox(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeLightbox()">✕ ЗАКРЫТЬ [ESC]</button>
+      <img id="lightboxImg" src="" alt="Preview" style="width:100%; max-height:78vh; object-fit:contain; background:#050608; display:block;" />
+      <div id="lightboxCaption" style="padding:1rem 1.5rem; font-family:var(--font-mono); font-size:0.84rem; color:var(--text-secondary); border-top:1px solid var(--border-subtle);"></div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast" id="toastBox">Скопировано в буфер обмена</div>
+
+  <script>
+    // =========================================================================
+    // 1. PRODUCTION DATA: 4 CHARACTERS & 8 STORYBOARD SCENES
+    // =========================================================================
+    const CHARACTERS = [
+      {
+        id: "kilowatt",
+        alias: "MC KILO-WATT",
+        realName: "Маркус «Киловатт» Вэнс • 21 год • Бруклин",
+        pillar: "СТИХИЯ I: СЛОВО (MC / LYRICIST)",
+        silhouette: "Перевёрнутый треугольник (Рост 186 см)",
+        image: "assets/char_kilowatt.jpg",
+        sfxType: "mc",
+        sfxLabel: "🔊 ТЕСТ БАСА И ФЛОУ",
+        bio: "Уличный философ, тактический лидер и голос квартала. Его тексты — это документальная хроника ночного города, записанная мелким почерком в кожаный блокнот под гул вагонов подземки.",
+        wardrobe: "Объёмный горчично-чёрный пуховик поверх плотной серой худи Champion; шапка-бини набок поверх коротких твистов; узкие золотые очки, пластырь на переносице; широкие джинсы индиго и пшеничные ботинки Timberland 6-inch.",
+        props: "Хромированный проводной микрофон Shure SM58 с обмотанным изолентой кабелем, потрёпанный блокнот «KILO-WATT LYRICS '94», серебряный кулон-микрофон.",
+        acting: "Рубящая жестикуляция левой рукой в 2-ю и 4-ю доли такта (92 BPM). Спокойный снайперский прищур, переходящий во взрывную подачу на панчлайнах.",
+        palette: [
+          { name: "Mustard Gold", hex: "#D99B26" },
+          { name: "Carbon Puffer", hex: "#18181B" },
+          { name: "Raw Indigo", hex: "#1C2838" },
+          { name: "Wheat Nubuck", hex: "#C68E3F" }
+        ]
+      },
+      {
+        id: "rusty",
+        alias: "DJ RUSTY NEEDLE",
+        realName: "Дарио «Ржавая Игла» Моралес • 23 года • Южный Бронкс",
+        pillar: "СТИХИЯ II: ЗВУК (BEATMAKER & DJ)",
+        silhouette: "Монолитный квадрат (Рост 174 см)",
+        image: "assets/char_rusty_needle.jpg",
+        sfxType: "mpc",
+        sfxLabel: "🔊 УДАР MPC3000 DRUM",
+        bio: "Звуковой алхимик и перфекционист винила. Способен записать лязг стрелочного перевода метро на кассетник и за десять минут превратить его в качающий андерграундный шедевр.",
+        wardrobe: "Винтажный лётный бомбер Alpha MA-1 оливкового цвета с оранжевой подкладкой, красно-чёрная клетчатая фланель, широкие вельветовые карго-брюки, кепка козырьком назад и наушники Technics на одно ухо.",
+        props: "Кастомный сэмплер Akai MPC3000, кассетный рекордер Sony Walkman Pro с направленным микрофоном, пластиковый ящик с редким джазовым винилом, зубочистка в углу рта.",
+        acting: "Невозмутимое спокойствие, глубокий гипнотический кивок головой («head nod»), молниеносная пальцевая техника (finger drumming) на 16 пэдах.",
+        palette: [
+          { name: "Flight Olive", hex: "#4A5535" },
+          { name: "Lining Orange", hex: "#E05A2B" },
+          { name: "MPC Beige", hex: "#C8BFA8" },
+          { name: "Corduroy Earth", hex: "#4E3B2B" }
+        ]
+      },
+      {
+        id: "nova",
+        alias: "NOVA (ALL-CITY)",
+        realName: "Рокси «Нова» Чен-Сантьяго • 19 лет • Куинс / Лос-Анджелес",
+        pillar: "СТИХИЯ III: ОБРАЗ (GRAFFITI WRITER)",
+        silhouette: "Асимметричная трапеция (Рост 168 см)",
+        image: "assets/char_nova.jpg",
+        sfxType: "spray",
+        sfxLabel: "🔊 ПШИК БАЛЛОНА KRYLON",
+        bio: "Дерзкая и неуловимая королева ночных депо. Для неё серые стальные борта вагонов — это движущиеся холсты, которые утром доставят её искусство в каждый район мегаполиса.",
+        wardrobe: "Укороченная джинсовка, залитая многослойными брызгами краски, поверх песочного рабочего комбинезона Carhartt со спущенной лямкой; два высоких пучка с бирюзовыми прядями; респиратор 3M на шее и перчатки без пальцев.",
+        props: "Брезентовая сумка почтальона, полная баллонов Krylon и Rust-Oleum с кэпами Fat Cap, самодельный маркер-сквизер для тегов с потёками.",
+        acting: "Кошачья пружинистая пластика, мгновенный разворот корпуса на шорохи, широкие каллиграфические махи от плеча при выведении контура (outline).",
+        palette: [
+          { name: "Krylon Magenta", hex: "#E0246A" },
+          { name: "Electric Cyan", hex: "#00C2E0" },
+          { name: "Carhartt Ochre", hex: "#B87D3B" },
+          { name: "Splatter Denim", hex: "#3B5978" }
+        ]
+      },
+      {
+        id: "gravity",
+        alias: "B-BOY GRAVITY",
+        realName: "Тайрон «Грэвити» Джексон • 20 лет • Гарлем",
+        pillar: "СТИХИЯ IV: ДВИЖЕНИЕ (B-BOY / BREAKER)",
+        silhouette: "Динамический ромб / молния (Рост 178 см)",
+        image: "assets/char_gravity.jpg",
+        sfxType: "scratch",
+        sfxLabel: "🔊 СКРЕТЧ + БРЕЙКБИТ",
+        bio: "Живой нерв и кинетический реактор команды. Переводит каждую синкопу драм-машины в каскад вращений, пируэтов и немыслимых балансов на одной руке.",
+        wardrobe: "Классический шуршащий спортивный костюм из красно-бело-чёрного нейлона с шевронами на груди; вязаная шапка Headspin Beanie поверх белой махровой повязки; суппорты на локтях и высокие белые кроссовки Adidas.",
+        props: "Гигантский двухкассетный хромированный бумбокс Lasonic TRC-931 на плече, лист гладкого картона для уличного сайфера.",
+        acting: "Постоянный микро-ритм в ногах (toprock), переход из сверхскоростного вращения (windmill) в абсолютно каменный однорукий фриз точно на удар снейра.",
+        palette: [
+          { name: "Kinetic Crimson", hex: "#D62828" },
+          { name: "Shell White", hex: "#F8F9FA" },
+          { name: "Chrome Boombox", hex: "#A8B2BC" },
+          { name: "Asphalt Black", hex: "#141414" }
+        ]
+      }
+    ];
+
+    const SHOTS = [
+      {
+        num: "01",
+        title: "ИНТРО: ОХОТА ЗА ЗВУКОМ",
+        enTitle: "SUBWAY SOUND HUNT",
+        timecode: "00:00 – 00:18",
+        duration: "18 сек",
+        characters: ["Rusty Needle"],
+        image: "assets/frame_01_sound_hunt.jpg",
+        shotType: "Средний план (MS), Нижний ракурс (Low Angle)",
+        lens: "35mm Anamorphic f/2.0",
+        movement: "Dolly In + высокочастотная вибрация от поезда",
+        lighting: "Стробоскоп 3200K из мелькающих окон вагона + горизонтальный блик",
+        action: "DJ Rusty Needle на закрытой площадке за безопасной линией платформы 145th Street записывает проходящий отдельным планом состав: рекордер, направленный микрофон и лицо героя связываются монтажом и световыми перебивками.",
+        audio: "[SFX: Щелчок REC → нарастание рельсового гула и колёсных ударов → STOP в 00:15 → четыре удара-сэмпла]", 
+        camClass: "cam-dolly-in",
+        bpType: "platform"
+      },
+      {
+        num: "02",
+        title: "РОЖДЕНИЕ БИТА В КОТЕЛЬНОЙ",
+        enTitle: "BOILER ROOM MPC3000",
+        timecode: "00:18 – 00:42",
+        duration: "24 сек",
+        characters: ["Rusty Needle", "Kilo-Watt"],
+        image: "assets/frame_02_mpc_beat.jpg",
+        shotType: "Крупный план с глубоким фокусом (Deep-Focus CU)",
+        lens: "28mm Wide Prime f/5.6",
+        movement: "Голландский угол 15° (Dutch Angle) + резкий Snap Zoom Out",
+        lighting: "Качающаяся лампа накаливания сверху + холодный синий свет экрана MPC3000",
+        action: "Пальцы Rusty Needle вбивают нарезанный сэмпл подземки в 16 резиновых пэдов Akai MPC3000. На втором плане в клубах пара Kilo-Watt пишет куплеты в кожаный блокнот.",
+        audio: "[BEAT DROP: Вступает тяжёлая бочка 92 BPM, пыльный джазовый луп и виниловый песок]",
+        camClass: "cam-dutch-zoom",
+        bpType: "boiler"
+      },
+      {
+        num: "03",
+        title: "ПЕРВЫЙ КУПЛЕТ: ГОЛОС КВАРТАЛА",
+        enTitle: "16MM FISHEYE FIRE ESCAPE",
+        timecode: "00:42 – 01:12",
+        duration: "30 сек",
+        characters: ["Kilo-Watt", "Rusty Needle", "Nova", "Gravity"],
+        image: "assets/frame_03_fire_escape.jpg",
+        shotType: "Экстремальный ракурс снизу вверх (Worm's-Eye View)",
+        lens: "16mm Fisheye (Рыбий глаз)",
+        movement: "Ручная камера (Handheld), качающаяся в такт читке",
+        lighting: "Янтарный натриевый фонарь (2700K) в тумане + пар изо рта на морозе",
+        action: "Kilo-Watt свешивается с чугунной пожарной лестницы прямо к куполу линзы Fisheye, читая первый куплет в хромированный микрофон. На пролётах выше качает вся команда.",
+        audio: "KILO-WATT: «Девяносто четвёртый, сталь поёт под землёй, мы пишем хроники ночи аэрозольной струёй!»",
+        camClass: "cam-fisheye-pulse",
+        bpType: "alley"
+      },
+      {
+        num: "04",
+        title: "ПРОНИКНОВЕНИЕ В ДЕПО",
+        enTitle: "TRAIN YARD INFILTRATION",
+        timecode: "01:12 – 01:35",
+        duration: "23 сек",
+        characters: ["Kilo-Watt", "Rusty Needle", "Nova", "Gravity"],
+        image: "assets/frame_04_depot_infiltration.jpg",
+        shotType: "Общий план со спины (Wide Tracking Shot)",
+        lens: "35mm Anamorphic f/2.8",
+        movement: "Проход на Steadicam сквозь разрезанную сетку-рабицу",
+        lighting: "Жесткий контровой свет прожекторов депо + отражения в мокром асфальте",
+        action: "Четвёрка героев плечом к плечу входит в закрытое ночное депо между стальными составами: у каждого в руках свой инструмент — микрофон, кейс MPC, сумка с баллонами и бумбокс.",
+        audio: "[SFX: Звон стеклянных шариков в баллонах Krylon в такт хай-хэтам + шаг по гравию]",
+        camClass: "cam-steadicam",
+        bpType: "yard"
+      },
+      {
+        num: "05",
+        title: "ЦВЕТНОЙ ВЗРЫВ: СТИЛЬ НА СТАЛИ",
+        enTitle: "WILDSTYLE WHOLE-CAR BOMBING",
+        timecode: "01:35 – 02:02",
+        duration: "27 сек",
+        characters: ["Nova"],
+        image: "assets/frame_05_graffiti_bombing.jpg",
+        shotType: "Поясной профильный план (MCU Profile)",
+        lens: "50mm Prime f/1.4",
+        movement: "Боковой проезд на тележке (Lateral Dolly) + монтажные Whip Pans",
+        lighting: "Холодный контровой прожектор сквозь облако розового и голубого аэрозоля",
+        action: "Nova быстрыми каллиграфическими движениями выводит огромный неоново-пурпурный и бирюзовый Wildstyle-кусок на ребристом стальном борту вагона метро №7249.",
+        audio: "[SFX: Перкуссионное шипение насадки Fat Cap «ПШШ-ТСС!» поверх скретчей]",
+        camClass: "cam-whip-pan",
+        bpType: "bombing"
+      },
+      {
+        num: "06",
+        title: "ПРИПЕВ: ПОБЕДА НАД ГРАВИТАЦИЕЙ",
+        enTitle: "B-BOY AIRCHAIR FREEZE CYPHER",
+        timecode: "02:02 – 02:30",
+        duration: "28 сек",
+        characters: ["Gravity", "Kilo-Watt", "Nova"],
+        image: "assets/frame_06_bboy_freeze.jpg",
+        shotType: "Широкий план с нижней точки (20 см от бетона)",
+        lens: "24mm Wide Prime",
+        movement: "Круговой облет 180° (Arc Shot) + эффект рваной плёнки (Step-Printing)",
+        lighting: "Театральный верхний пучок света на картон + цветные рефлексы от свежего граффити",
+        action: "На взрывном припеве B-Boy Gravity после серии гедспинов намертво замирает в одноруком Airchair Freeze на картоне перед только что расписанным вагоном, пока Kilo-Watt и Nova качают рядом.",
+        audio: "ПРИПЕВ (ХОРОМ): «Subway Prophets — от подземки до небес! Наш голос на стали не сотрёт экспресс!»",
+        camClass: "cam-arc-freeze",
+        bpType: "cypher"
+      },
+      {
+        num: "07",
+        title: "САСПЕНС: ЛУЧ ФОНАРЯ ОХРАНЫ",
+        enTitle: "SPLIT-DIOPTER GUARD SUSPENSE",
+        timecode: "02:30 – 02:50",
+        duration: "20 сек",
+        characters: ["Nova", "Kilo-Watt"],
+        image: "assets/frame_07_flashlight_suspense.svg",
+        shotType: "Двухплановый кадр со сплит-диоптрией (Split-Diopter)",
+        lens: "35mm Anamorphic + Split-Diopter",
+        movement: "Мёртвая статика у рельсов (Затаившееся дыхание)",
+        lighting: "Глубокая тень под вагоном vs ослепительный конус фонаря охранника",
+        action: "В резкости одновременно лицо Nova в 40 см от камеры под днищем вагона и силуэт охранника в 25 метрах позади. Nova ставит финальный тег сквизером с потёками и улыбается.",
+        audio: "[AUDIO DROP: Бит уходит под воду через Low-Pass фильтр 250Hz + стук сердца и треск рации]",
+        camClass: "cam-dolly-in",
+        bpType: "suspense"
+      },
+      {
+        num: "08",
+        title: "ФИНАЛ: РАССВЕТНЫЙ ПОЕЗД В ГОРОД",
+        enTitle: "DAWN ROOFTOP & WHOLE-CAR FINALE",
+        timecode: "02:50 – 03:20",
+        duration: "30 сек",
+        characters: ["Kilo-Watt", "Rusty Needle", "Nova", "Gravity"],
+        image: "assets/frame_08_rooftop_cypher.svg",
+        shotType: "Переход со среднего плана на эпический общий план (EWS)",
+        lens: "85mm Telephoto Anamorphic",
+        movement: "Подъём на операторском кране (High Crane Rise) над крышей",
+        lighting: "Золотой час рассвета (Golden Hour 2800K) + мягкий контровой солнечный блик",
+        action: "Четверо друзей на крыше кирпичного дома встречают рассвет, глядя, как по надземной эстакаде через просыпающийся Бруклин мчится утренний поезд с их сияющим граффити-вагоном «PROPHETS '94».",
+        audio: "[OUTRO: Финальное скретч-соло Rusty Needle, тёплый духовой аккорд и уютный треск винила]",
+        camClass: "cam-crane-up",
+        bpType: "rooftop"
+      }
+    ];
+
+    // =========================================================================
+    // 2. RENDER FUNCTIONS FOR ALL TABS
+    // =========================================================================
+    function renderCharacters() {
+      const grid = document.getElementById("charGrid");
+      grid.innerHTML = CHARACTERS.map(c => `
+        <article class="char-card">
+          <div class="char-visual" onclick="openLightbox('${c.image}', '${c.alias} — ${c.realName}')">
+            <img src="${c.image}" alt="${c.alias}" loading="lazy" />
+            <span class="char-pillar-tag">${c.pillar}</span>
+            <div class="char-silhouette-badge">
+              <span>СИЛУЭТ: ${c.silhouette}</span>
+              <span style="color:var(--accent-amber)">🔍 УВЕЛИЧИТЬ</span>
+            </div>
+          </div>
+          <div class="char-body">
+            <div>
+              <div class="char-header-row">
+                <div>
+                  <h3 class="char-alias">${c.alias}</h3>
+                  <div class="char-realname">${c.realName}</div>
+                </div>
+                <button class="char-sfx-btn" onclick="playCharacterSfx('${c.sfxType}')">${c.sfxLabel}</button>
+              </div>
+              <p class="char-bio" style="margin-top:0.65rem;">${c.bio}</p>
+            </div>
+
+            <div class="char-meta-list">
+              <div class="char-meta-item"><strong>КОСТЮМ И ФАКТУРА:</strong> ${c.wardrobe}</div>
+              <div class="char-meta-item"><strong>РЕКВИЗИТ (PROPS):</strong> ${c.props}</div>
+              <div class="char-meta-item"><strong>ПЛАСТИКА И АКТЁРСКАЯ ИГРА:</strong> ${c.acting}</div>
+            </div>
+
+            <div class="palette-row">
+              <span class="palette-label">ПАЛИТРА (КЛИК КОПИРУЕТ HEX):</span>
+              ${c.palette.map(p => `
+                <button class="swatch" onclick="copyHex('${p.hex}', '${p.name}')" title="${p.name}">
+                  <span class="swatch-dot" style="background:${p.hex}"></span>
+                  <span>${p.hex}</span>
+                </button>
+              `).join("")}
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderStoryboard(filterChar = "all") {
+      const grid = document.getElementById("storyboardGrid");
+      const filtered = filterChar === "all"
+        ? SHOTS
+        : SHOTS.filter(s => s.characters.some(ch => ch.includes(filterChar)));
+
+      grid.innerHTML = filtered.map(s => `
+        <article class="shot-card">
+          <div class="shot-viewport" onclick="openLightbox('${s.image}', 'КАДР ${s.num}: ${s.title} (${s.timecode}) — Оптика: ${s.lens}')">
+            <img src="${s.image}" alt="${s.title}" loading="lazy" />
+            <div class="viewfinder-hud">
+              <div class="vf-top">
+                <span class="vf-tag">SHOT ${s.num} // ${s.enTitle}</span>
+                <span class="vf-lens">${s.lens}</span>
+              </div>
+              <div class="vf-bottom">
+                <span style="color:#e2e8f0; background:rgba(0,0,0,0.75); padding:2px 6px; border-radius:3px;">Герои: ${s.characters.join(", ")}</span>
+                <span style="color:var(--accent-amber); background:rgba(0,0,0,0.75); padding:2px 6px; border-radius:3px;">TC ${s.timecode}</span>
+              </div>
+            </div>
+          </div>
+          <div class="shot-content">
+            <div class="shot-title-row">
+              <h3 class="shot-title">КАДР ${s.num} // ${s.title}</h3>
+              <span class="shot-tc">${s.timecode} (${s.duration})</span>
+            </div>
+            <div class="shot-specs">
+              <div class="shot-spec-item">
+                <span>КРУПНОСТЬ / РАКУРС</span>
+                <strong>${s.shotType}</strong>
+              </div>
+              <div class="shot-spec-item">
+                <span>ДВИЖЕНИЕ КАМЕРЫ</span>
+                <strong>${s.movement}</strong>
+              </div>
+              <div class="shot-spec-item">
+                <span>СВЕТОВАЯ СХЕМА</span>
+                <strong>${s.lighting}</strong>
+              </div>
+            </div>
+            <p class="shot-action">${s.action}</p>
+            <div class="shot-audio-box">${s.audio}</div>
+            ${s.num === "01" ? `<a class="scene-launch" href="scene_01.html"><span class="scene-launch-icon" aria-hidden="true">▶</span><span><b>ОТКРЫТЬ ПОЛНУЮ СЦЕНУ 01</b><small>18-секундный аниматик со звуковым скетчем</small></span></a>` : ""}
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function filterShots(charName, btn) {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderStoryboard(charName);
+    }
+
+    function renderScriptTable() {
+      const tbody = document.getElementById("scriptTableBody");
+      tbody.innerHTML = SHOTS.map(s => `
+        <tr>
+          <td><strong style="color:var(--accent-amber); font-family:var(--font-mono);">КАДР ${s.num}</strong><br>${s.title}</td>
+          <td style="font-family:var(--font-mono); white-space:nowrap; color:var(--accent-cyan);">${s.timecode}<br><small>(${s.duration})</small></td>
+          <td>${s.characters.join(", ")}</td>
+          <td><strong>${s.lens}</strong><br><small>${s.shotType}</small></td>
+          <td>${s.movement}</td>
+          <td>${s.lighting}</td>
+          <td>${s.action}</td>
+          <td style="font-family:var(--font-mono); font-size:0.78rem; color:#f3d292;">${s.audio}</td>
+        </tr>
+      `).join("");
+    }
+
+    // =========================================================================
+    // 3. TOP-DOWN CAMERA BLOCKING BLUEPRINTS (INTERACTIVE SVG FLOOR PLANS)
+    // =========================================================================
+    let activeBpIndex = 0;
+
+    function renderBlueprintsList() {
+      const list = document.getElementById("bpSceneList");
+      list.innerHTML = SHOTS.map((s, idx) => `
+        <button class="bp-scene-btn ${idx === activeBpIndex ? 'active' : ''}" onclick="selectBlueprint(${idx})">
+          <div style="color:var(--accent-amber); font-weight:700;">КАДР ${s.num} // ${s.title}</div>
+          <div style="font-size:0.7rem; margin-top:2px; color:var(--text-muted);">Оптика: ${s.lens} • ${s.movement.split('+')[0]}</div>
+        </button>
+      `).join("");
+      renderBlueprintCanvas(activeBpIndex);
+    }
+
+    function selectBlueprint(idx) {
+      activeBpIndex = idx;
+      renderBlueprintsList();
+    }
+
+    function renderBlueprintCanvas(idx) {
+      const s = SHOTS[idx];
+      const container = document.getElementById("bpCanvasContainer");
+
+      // Generate specialized top-down architectural & camera diagram per scene
+      let diagramElements = "";
+      if (idx === 0) {
+        diagramElements = `
+          <!-- Subway Platform & Tracks -->
+          <rect x="60" y="60" width="780" height="150" fill="#162234" stroke="#3b5270" stroke-width="2"/>
+          <text x="85" y="100" fill="#64748b" font-family="monospace" font-size="14">ПЛАТФОРМА СТАНЦИИ «145TH STREET»</text>
+          <line x1="60" y1="210" x2="840" y2="210" stroke="#f59e0b" stroke-width="4" stroke-dasharray="10,6"/>
+          <!-- Speeding Subway Train -->
+          <rect x="120" y="240" width="680" height="90" rx="8" fill="#1e293b" stroke="#00c2e0" stroke-width="3"/>
+          <text x="330" y="292" fill="#00c2e0" font-family="monospace" font-weight="bold" font-size="16">ПОЕЗД МЕТРО (СКОРОСТЬ 65 КМ/Ч) ➔➔➔</text>
+          <!-- DJ Rusty Needle -->
+          <circle cx="450" cy="185" r="18" fill="#4A5535" stroke="#fff" stroke-width="2"/>
+          <text x="385" y="155" fill="#fff" font-family="monospace" font-size="13">DJ RUSTY NEEDLE + МИКРОФОН</text>
+          <!-- Camera Dolly In -->
+          <polygon points="260,175 430,150 430,220" fill="rgba(229,155,39,0.22)" stroke="#e59b27" stroke-width="1.5"/>
+          <rect x="230" y="162" width="32" height="26" rx="4" fill="#e59b27"/>
+          <text x="155" y="150" fill="#e59b27" font-family="monospace" font-weight="bold" font-size="13">CAM A (35mm Anamorphic) ➔ DOLLY IN</text>
+        `;
+      } else if (idx === 1) {
+        diagramElements = `
+          <!-- Boiler Room Walls -->
+          <rect x="90" y="50" width="720" height="310" fill="#131c2b" stroke="#475569" stroke-width="3"/>
+          <text x="115" y="85" fill="#64748b" font-family="monospace" font-size="14">ПОДВАЛЬНАЯ КОТЕЛЬНАЯ / СТУДИЯ (BOILER ROOM)</text>
+          <!-- MPC Table -->
+          <rect x="380" y="190" width="140" height="80" rx="6" fill="#2d3748" stroke="#00c2e0" stroke-width="2"/>
+          <text x="402" y="235" fill="#00c2e0" font-family="monospace" font-size="13">AKAI MPC3000</text>
+          <!-- Rusty Needle & Kilo-Watt -->
+          <circle cx="450" cy="295" r="18" fill="#4A5535" stroke="#fff" stroke-width="2"/>
+          <text x="395" y="330" fill="#fff" font-family="monospace" font-size="12">RUSTY NEEDLE</text>
+          <circle cx="620" cy="140" r="18" fill="#D99B26" stroke="#fff" stroke-width="2"/>
+          <text x="565" y="112" fill="#f5b942" font-family="monospace" font-size="12">MC KILO-WATT (ПЛАН Б)</text>
+          <!-- Overhead Camera FOV -->
+          <polygon points="340,295 430,160 660,115 560,310" fill="rgba(229,155,39,0.18)" stroke="#e59b27" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <rect x="320" y="280" width="34" height="26" fill="#e59b27"/>
+          <text x="150" y="298" fill="#e59b27" font-family="monospace" font-weight="bold" font-size="13">CAM A (28mm Overhead Dutch 15°)</text>
+        `;
+      } else if (idx === 2) {
+        diagramElements = `
+          <!-- Brick Alley & Iron Fire Escape -->
+          <rect x="100" y="50" width="700" height="110" fill="#1e1b24" stroke="#64748b" stroke-width="2"/>
+          <text x="125" y="95" fill="#94a3b8" font-family="monospace" font-size="14">КИРПИЧНЫЙ ФАСАД ДОМА В БРУКЛИНЕ</text>
+          <rect x="320" y="160" width="260" height="75" fill="#262f3f" stroke="#e59b27" stroke-width="2"/>
+          <text x="350" y="185" fill="#e59b27" font-family="monospace" font-size="12">ЧУГУННАЯ ПОЖАРНАЯ ЛЕСТНИЦА</text>
+          <!-- Crew on Fire Escape -->
+          <circle cx="450" cy="215" r="20" fill="#D99B26" stroke="#fff" stroke-width="2.5"/>
+          <text x="395" y="255" fill="#f5b942" font-family="monospace" font-weight="bold" font-size="13">KILO-WATT (СВЕСИЛСЯ ВНИЗ)</text>
+          <circle cx="380" cy="185" r="13" fill="#4A5535"/><circle cx="515" cy="185" r="13" fill="#E0246A"/><circle cx="555" cy="195" r="13" fill="#D62828"/>
+          <!-- 16mm Fisheye Camera below -->
+          <circle cx="450" cy="310" r="85" fill="rgba(0,194,224,0.14)" stroke="#00c2e0" stroke-width="2" stroke-dasharray="5,5"/>
+          <rect x="434" y="305" width="32" height="24" fill="#00c2e0"/>
+          <text x="320" y="358" fill="#00c2e0" font-family="monospace" font-weight="bold" font-size="13">CAM A: 16mm FISHEYE (СНИЗУ ВВЕРХ 180° FOV)</text>
+        `;
+      } else {
+        diagramElements = `
+          <!-- Train Depot Tracks & Cars -->
+          <rect x="80" y="65" width="740" height="82" rx="6" fill="#1e293b" stroke="#e0246a" stroke-width="3"/>
+          <text x="240" y="112" fill="#ff7ab8" font-family="monospace" font-weight="bold" font-size="15">ВАГОН МЕТРО №7249 (WILDSTYLE GRAFFITI WALL)</text>
+          <rect x="80" y="295" width="740" height="65" rx="6" fill="#151d2a" stroke="#475569" stroke-width="2"/>
+          <text x="320" y="332" fill="#64748b" font-family="monospace" font-size="13">СОСЕДНИЙ СОСТАВ МЕТРО (ТЕod-КРЫЛО)</text>
+          <!-- 4 Crew Members in Cypher Formation -->
+          <circle cx="330" cy="195" r="16" fill="#D99B26" stroke="#fff" stroke-width="2"/>
+          <text x="290" y="172" fill="#f5b942" font-family="monospace" font-size="11">KILO-WATT</text>
+          <circle cx="450" cy="195" r="19" fill="#D62828" stroke="#fff" stroke-width="2.5"/>
+          <text x="405" y="172" fill="#ff6b6b" font-family="monospace" font-weight="bold" font-size="12">GRAVITY (FREEZE)</text>
+          <circle cx="570" cy="195" r="16" fill="#00C2E0" stroke="#fff" stroke-width="2"/>
+          <text x="550" y="172" fill="#00c2e0" font-family="monospace" font-size="11">NOVA</text>
+          <circle cx="230" cy="215" r="16" fill="#4A5535" stroke="#fff" stroke-width="2"/>
+          <text x="180" y="245" fill="#a3b88c" font-family="monospace" font-size="11">RUSTY NEEDLE</text>
+          <!-- Camera Arc Path -->
+          <path d="M 290,260 Q 450,310 610,260" fill="none" stroke="#e59b27" stroke-width="3" stroke-dasharray="8,5"/>
+          <polygon points="450,275 340,185 560,185" fill="rgba(229,155,39,0.18)" stroke="#e59b27" stroke-width="1.5"/>
+          <rect x="434" y="265" width="32" height="22" fill="#e59b27"/>
+          <text x="315" y="292" fill="#e59b27" font-family="monospace" font-weight="bold" font-size="13">CAM A (${s.lens}) — ТРАЕКТОРИЯ КАМЕРЫ</text>
+        `;
+      }
+
+      container.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.85rem;">
+          <div>
+            <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-cyan);">TOP-DOWN ARCHITECTURAL BLOCKING // КАДР ${s.num}</span>
+            <h3 style="font-family:var(--font-display); font-size:1.4rem; text-transform:uppercase;">${s.title} (${s.timecode})</h3>
+          </div>
+          <span style="font-family:var(--font-mono); font-size:0.76rem; background:rgba(0,194,224,0.15); border:1px solid var(--accent-cyan); color:#7ce8ff; padding:0.3rem 0.65rem; border-radius:6px;">
+            ОПТИКА: ${s.lens}
+          </span>
+        </div>
+
+        <svg viewBox="0 0 900 400" style="width:100%; height:auto; background:#080d16; border:1px solid rgba(255,255,255,0.1); border-radius:8px;">
+          <!-- Compass & Scale -->
+          <g transform="translate(820, 45)" stroke="#64748b" stroke-width="1.5" fill="none">
+            <circle cx="0" cy="0" r="22"/>
+            <polygon points="0,-18 -6,6 0,2 6,6" fill="#e59b27" stroke="none"/>
+            <text x="-4" y="-25" fill="#e59b27" font-family="monospace" font-size="11" stroke="none">N</text>
+          </g>
+          ${diagramElements}
+        </svg>
+
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.75rem; margin-top:1rem; font-family:var(--font-mono); font-size:0.76rem;">
+          <div class="spec-box">
+            <span class="spec-label">ДВИЖЕНИЕ КАМЕРЫ</span>
+            <span style="color:var(--accent-amber);">${s.movement}</span>
+          </div>
+          <div class="spec-box">
+            <span class="spec-label">СВЕТОВАЯ ПАРТИТУРА</span>
+            <span style="color:var(--text-primary);">${s.lighting}</span>
+          </div>
+          <div class="spec-box">
+            <span class="spec-label">ЗВУКОВОЙ АКЦЕНТ</span>
+            <span style="color:var(--accent-cyan);">${s.audio}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 4. ANIMATIC PLAYER LOGIC
+    // =========================================================================
+    let currentAnimIndex = 0;
+    let animInterval = null;
+    let isAnimPlaying = false;
+
+    function initAnimatic() {
+      const strip = document.getElementById("animTimeline");
+      strip.innerHTML = SHOTS.map((s, idx) => `
+        <div class="tl-thumb ${idx === 0 ? 'active' : ''}" onclick="setAnimaticFrame(${idx})">
+          <img src="${s.image}" alt="Frame ${s.num}" />
+          <span class="tl-num">${s.num}</span>
+        </div>
+      `).join("");
+      setAnimaticFrame(0);
+    }
+
+    function setAnimaticFrame(idx) {
+      currentAnimIndex = (idx + SHOTS.length) % SHOTS.length;
+      const s = SHOTS[currentAnimIndex];
+
+      const img = document.getElementById("animaticImage");
+      img.className = "animatic-img";
+      void img.offsetWidth; // trigger reflow for CSS animation restart
+      img.src = s.image;
+      img.classList.add(s.camClass);
+
+      // Apply low-pass audio filter automatically on Scene 07 (Suspense)!
+      if (filterNode && audioCtx) {
+        if (currentAnimIndex === 6) {
+          filterNode.frequency.setTargetAtTime(280, audioCtx.currentTime, 0.15);
+        } else {
+          filterNode.frequency.setTargetAtTime(14000, audioCtx.currentTime, 0.15);
+        }
+      }
+
+      document.getElementById("animSceneLabel").textContent = `SCENE ${s.num} // ${s.enTitle}`;
+      document.getElementById("animLensLabel").textContent = `OPTICS: ${s.lens}`;
+      document.getElementById("animTimecode").textContent = `TC ${s.timecode}`;
+      document.getElementById("animSubtitleText").textContent = s.audio;
+      document.getElementById("animCamMove").textContent = `CAMERA: ${s.movement}`;
+      document.getElementById("animLightInfo").textContent = `LIGHT: ${s.lighting}`;
+
+      document.getElementById("sideShotTitle").textContent = `КАДР ${s.num} — ${s.title} (${s.timecode})`;
+      document.getElementById("sideShotAction").textContent = s.action;
+      document.getElementById("sideShotCamera").textContent = `${s.shotType} • ${s.lens} • ${s.movement}`;
+      document.getElementById("sideShotAudio").textContent = s.audio;
+
+      document.querySelectorAll(".tl-thumb").forEach((el, i) => {
+        el.classList.toggle("active", i === currentAnimIndex);
+      });
+    }
+
+    function stepAnimatic(dir) {
+      setAnimaticFrame(currentAnimIndex + dir);
+    }
+
+    function toggleAnimaticPlayback() {
+      const btn = document.getElementById("animPlayBtn");
+      if (isAnimPlaying) {
+        clearInterval(animInterval);
+        isAnimPlaying = false;
+        btn.textContent = "▶ ЗАПУСТИТЬ АНИМАТИК + ЗВУК";
+        if (isBeatPlaying) toggleBoomBapBeat();
+      } else {
+        isAnimPlaying = true;
+        btn.textContent = "⏸ ПАУЗА АНИМАТИКА";
+        if (!isBeatPlaying) toggleBoomBapBeat();
+        animInterval = setInterval(() => {
+          stepAnimatic(1);
+        }, 4500);
+      }
+    }
+
+    // =========================================================================
+    // 5. WEB AUDIO API 92 BPM BOOM-BAP BEAT SYNTHESIZER & CHARACTER SFX
+    // =========================================================================
+    let audioCtx = null;
+    let filterNode = null;
+    let isBeatPlaying = false;
+    let beatTimer = null;
+    let stepIndex = 0;
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+        filterNode = audioCtx.createBiquadFilter();
+        filterNode.type = "lowpass";
+        filterNode.frequency.value = 14000;
+        filterNode.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    function playKick(time) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(135, time);
+      osc.frequency.exponentialRampToValueAtTime(42, time + 0.12);
+      gain.gain.setValueAtTime(0.95, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.32);
+      osc.connect(gain);
+      gain.connect(filterNode);
+      osc.start(time);
+      osc.stop(time + 0.34);
+    }
+
+    function playSnare(time) {
+      // Crisp SP-1200 noise snare + body
+      const bufferSize = audioCtx.sampleRate * 0.18;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.055));
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = "bandpass";
+      bandpass.frequency.value = 1800;
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.65, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + 0.18);
+
+      noise.connect(bandpass);
+      bandpass.connect(gain);
+      gain.connect(filterNode);
+      noise.start(time);
+    }
+
+    function playHiHat(time, open = false) {
+      const dur = open ? 0.22 : 0.045;
+      const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * (open ? 0.09 : 0.015)));
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 6500;
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.24, time);
+      noise.connect(hp);
+      hp.connect(gain);
+      gain.connect(filterNode);
+      noise.start(time);
+    }
+
+    function playDustyJazzChord(time, rootFreq) {
+      const intervals = [1, 1.189, 1.498, 1.782]; // minor 7th chord
+      intervals.forEach(mult => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(rootFreq * mult, time);
+        gain.gain.setValueAtTime(0.07, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.65);
+        osc.connect(gain);
+        gain.connect(filterNode);
+        osc.start(time);
+        osc.stop(time + 0.68);
+      });
+    }
+
+    function toggleBoomBapBeat() {
+      ensureAudio();
+      const btn = document.getElementById("beatToggleBtn");
+      const bars = document.querySelectorAll(".vu-bar");
+
+      if (isBeatPlaying) {
+        clearInterval(beatTimer);
+        isBeatPlaying = false;
+        btn.classList.remove("playing");
+        btn.innerHTML = "<span>▶</span> 92 BPM BOOM-BAP БИТ";
+        bars.forEach(b => b.style.height = "4px");
+        return;
+      }
+
+      isBeatPlaying = true;
+      btn.classList.add("playing");
+      btn.innerHTML = "<span>■</span> СТОП 92 BPM БИТ";
+      stepIndex = 0;
+
+      // 92 BPM -> 16th note = (60 / 92) / 4 = 0.163 sec
+      const stepMs = 163;
+      beatTimer = setInterval(() => {
+        const now = audioCtx.currentTime;
+        const s = stepIndex % 16;
+
+        // Boom-bap 16-step pattern
+        if (s === 0 || s === 7 || s === 10) playKick(now);
+        if (s === 4 || s === 12) playSnare(now);
+        if (s % 2 === 0) playHiHat(now, s === 14);
+        if (s === 0) playDustyJazzChord(now, 146.83); // D minor 7
+        if (s === 8) playDustyJazzChord(now, 130.81); // C minor 7
+
+        // Animate VU meter
+        bars.forEach((b, i) => {
+          const boost = (s === 0 || s === 4 || s === 12) ? 20 : 12;
+          const h = Math.max(3, Math.floor(Math.random() * boost));
+          b.style.height = h + "px";
+          b.style.background = h > 15 ? "var(--accent-magenta)" : (h > 10 ? "var(--accent-cyan)" : "var(--accent-gold)");
+        });
+
+        stepIndex++;
+      }, stepMs);
+    }
+
+    function playCharacterSfx(type) {
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      if (type === "mpc") {
+        playKick(now);
+        playSnare(now + 0.16);
+        playKick(now + 0.32);
+        playDustyJazzChord(now, 164.81);
+        showToast("DJ RUSTY NEEDLE: Сэмпл Akai MPC3000 (92 BPM)");
+      } else if (type === "mc") {
+        playDustyJazzChord(now, 110.0);
+        playKick(now);
+        playSnare(now + 0.32);
+        showToast("MC KILO-WATT: Бруклинский басовый дроп + микрофонный чек");
+      } else if (type === "spray") {
+        // Aerosol spray sound burst
+        const dur = 0.38;
+        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.4;
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = 4200;
+        src.connect(bp);
+        bp.connect(filterNode);
+        src.start(now);
+        showToast("NOVA: Аэрозольный пшик насадки Astro Fat Cap!");
+      } else if (type === "scratch") {
+        // Turntable scratch chirp
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.linearRampToValueAtTime(780, now + 0.09);
+        osc.frequency.linearRampToValueAtTime(140, now + 0.18);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain);
+        gain.connect(filterNode);
+        osc.start(now);
+        osc.stop(now + 0.21);
+        showToast("B-BOY GRAVITY: Виниловый скретч для входа в Airchair Freeze!");
+      }
+    }
+
+    // =========================================================================
+    // 6. UI HELPERS (TABS, LIGHTBOX, COPY HEX)
+    // =========================================================================
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("tab-" + tabId).classList.add("active");
+
+      const map = { characters: 0, storyboard: 1, animatic: 2, blueprints: 3, script: 4 };
+      document.querySelectorAll(".nav-tab").forEach((t, i) => {
+        t.classList.toggle("active", i === map[tabId]);
+      });
+    }
+
+    function openLightbox(src, caption) {
+      document.getElementById("lightboxImg").src = src;
+      document.getElementById("lightboxCaption").textContent = caption;
+      document.getElementById("lightboxModal").classList.add("open");
+    }
+
+    function closeLightbox() {
+      document.getElementById("lightboxModal").classList.remove("open");
+    }
+
+    function copyHex(hex, name) {
+      navigator.clipboard.writeText(hex).catch(() => {});
+      showToast(`Скопирован цвет ${name}: ${hex}`);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toastBox");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2400);
+    }
+
+    window.addEventListener("keydown", e => {
+      if (e.key === "Escape") closeLightbox();
+    });
+
+    // Initialize studio on load
+    renderCharacters();
+    renderStoryboard("all");
+    initAnimatic();
+    renderBlueprintsList();
+    renderScriptTable();
+  </script>
+</body>
+</html>

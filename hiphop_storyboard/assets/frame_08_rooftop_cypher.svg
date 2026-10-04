@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="100%" height="100%">
+  <defs>
+    <linearGradient id="dawnSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#161024"/>
+      <stop offset="35%" stop-color="#47233c"/>
+      <stop offset="68%" stop-color="#c95b2b"/>
+      <stop offset="100%" stop-color="#f7b844"/>
+    </linearGradient>
+    <radialGradient id="sunFlare" cx="68%" cy="46%" r="42%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="22%" stop-color="#ffe28a" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#f07829" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f07829" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow8" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Golden Hour Sunrise Sky -->
+  <rect width="1600" height="900" fill="url(#dawnSky)"/>
+  <circle cx="1088" cy="414" r="380" fill="url(#sunFlare)"/>
+  <!-- Anamorphic horizontal lens flare streak -->
+  <ellipse cx="1088" cy="414" rx="480" ry="6" fill="#fff5cc" opacity="0.75" filter="url(#glow8)"/>
+
+  <!-- Distant Brooklyn Skyline Silhouette -->
+  <g fill="#1e1324" opacity="0.88">
+    <rect x="0" y="340" width="95" height="300"/>
+    <rect x="90" y="280" width="110" height="360"/>
+    <rect x="195" y="370" width="85" height="270"/>
+    <rect x="275" y="240" width="130" height="400"/>
+    <rect x="400" y="320" width="90" height="320"/>
+    <rect x="485" y="290" width="115" height="350"/>
+    <rect x="600" y="360" width="140" height="280"/>
+    <rect x="735" y="210" width="120" height="430"/>
+    <rect x="850" y="330" width="100" height="310"/>
+    <rect x="1220" y="260" width="130" height="380"/>
+    <rect x="1345" y="310" width="115" height="330"/>
+    <rect x="1455" y="230" width="145" height="410"/>
+  </g>
+
+  <!-- Elevated Steel Subway Viaduct Across Midground -->
+  <g>
+    <rect x="0" y="515" width="1600" height="34" fill="#170f1c" stroke="#f59e0b" stroke-width="2"/>
+    <rect x="110" y="549" width="34" height="220" fill="#140d18"/>
+    <rect x="390" y="549" width="34" height="220" fill="#140d18"/>
+    <rect x="670" y="549" width="34" height="220" fill="#140d18"/>
+    <rect x="950" y="549" width="34" height="220" fill="#140d18"/>
+    <rect x="1230" y="549" width="34" height="220" fill="#140d18"/>
+    <rect x="1510" y="549" width="34" height="220" fill="#140d18"/>
+  </g>
+
+  <!-- Morning Subway Train Rolling Across Viaduct with Whole-Car Graffiti Masterpiece! -->
+  <!-- Car 1 -->
+  <rect x="110" y="425" width="390" height="88" rx="10" fill="#b8b2bd" stroke="#2d1e30" stroke-width="4"/>
+  <!-- Car 2 (HERO GRAFFITI WHOLE-CAR: "SUBWAY PROPHETS") -->
+  <g>
+    <rect x="515" y="420" width="460" height="93" rx="10" fill="#1c1626" stroke="#f7b844" stroke-width="4"/>
+    <path d="M525,505 L560,430 L635,495 L705,428 L785,502 L865,428 L965,505 Z" fill="#e0246a" stroke="#ffffff" stroke-width="3"/>
+    <path d="M545,495 L605,438 L675,492 L750,435 L825,495 L915,436 L955,495 Z" fill="#00c2e0" stroke="#ffe28a" stroke-width="3"/>
+    <text x="565" y="482" fill="#ffffff" stroke="#140d18" stroke-width="3" font-family="Impact, sans-serif" font-size="44" letter-spacing="4">PROPHETS '94</text>
+  </g>
+  <!-- Car 3 -->
+  <rect x="990" y="425" width="390" height="88" rx="10" fill="#d4be98" stroke="#2d1e30" stroke-width="4"/>
+
+  <!-- Foreground Brick Rooftop Parapet & The 4 Heroes Celebrating at Dawn -->
+  <polygon points="0,665 1600,705 1600,900 0,900" fill="#120b14" stroke="#f7b844" stroke-width="4"/>
+
+  <!-- Crew Silhouettes with Golden Rim Lighting -->
+  <!-- 1. DJ Rusty Needle at Turntables on Milk Crates -->
+  <g stroke="#f59e0b" stroke-width="3" fill="#160f19">
+    <rect x="175" y="565" width="155" height="105" rx="4"/>
+    <circle cx="252" cy="452" r="36"/>
+    <path d="M202,565 L212,490 L292,490 L302,565 Z"/>
+  </g>
+  <!-- 2. MC Kilo-Watt Standing on Parapet Raising Mic to the Rising Sun -->
+  <g stroke="#fbbf24" stroke-width="4" fill="#160f19">
+    <circle cx="475" cy="418" r="38"/>
+    <path d="M418,672 L430,462 L525,462 L538,672 Z"/>
+    <line x1="522" y1="485" x2="592" y2="395" stroke="#fbbf24" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <!-- 3. B-Boy Gravity Executing a Victory One-Handed Freeze on the Roof -->
+  <g stroke="#ef4444" stroke-width="3.5" fill="#160f19">
+    <circle cx="775" cy="565" r="32"/>
+    <path d="M730,680 L760,595 L845,585 L810,680 Z"/>
+    <line x1="795" y1="590" x2="725" y2="465" stroke="#f8fafc" stroke-width="16" stroke-linecap="round"/>
+    <line x1="835" y1="585" x2="915" y2="485" stroke="#ef4444" stroke-width="16" stroke-linecap="round"/>
+  </g>
+  <!-- 4. Nova Sitting on Parapet Edge Watching Her Painted Train Roll By -->
+  <g stroke="#00c2e0" stroke-width="3.5" fill="#160f19">
+    <circle cx="1065" cy="512" r="34"/>
+    <circle cx="1042" cy="482" r="14" fill="#00c2e0"/>
+    <circle cx="1088" cy="482" r="14" fill="#00c2e0"/>
+    <path d="M1025,692 L1035,550 L1102,550 L1112,692 Z"/>
+  </g>
+
+  <!-- Camera Viewfinder HUD -->
+  <rect x="30" y="30" width="1540" height="840" fill="none" stroke="#f7b844" stroke-width="2" opacity="0.55"/>
+  <g transform="translate(50, 50)">
+    <rect width="690" height="86" rx="6" fill="#120b14" opacity="0.88" stroke="#f7b844" stroke-width="1.5"/>
+    <text x="22" y="34" fill="#f7b844" font-family="monospace" font-weight="bold" font-size="22">КАДР 08 // ФИНАЛ: РАССВЕТНЫЙ САЙФЕР И ПОЕЗД (02:50–03:20)</text>
+    <text x="22" y="64" fill="#fde68a" font-family="monospace" font-size="16">ОПТИКА: 85mm ANAMORPHIC CRANE RISE | СВЕТ: GOLDEN HOUR 2800K</text>
+  </g>
+</svg>
