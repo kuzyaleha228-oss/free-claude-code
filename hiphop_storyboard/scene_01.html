@@ -236,6 +236,19 @@
     .shot-row-note b { display: block; margin-bottom: .12rem; color: var(--quiet); font: 700 .57rem var(--mono); letter-spacing: .08em; }
     .shot-row-time { justify-self: end; color: var(--muted); white-space: nowrap; font: 600 .65rem var(--mono); }
 
+    .omniflash-handoff { margin-top: 2rem; padding: 1rem; border: 1px solid rgba(0,194,224,.25); border-radius: 9px; background: linear-gradient(120deg,rgba(0,194,224,.055),rgba(17,20,27,.94) 42%); }
+    .omni-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    .omni-eyebrow { color: var(--cyan); font: 700 .63rem var(--mono); letter-spacing: .13em; text-transform: uppercase; }
+    .omni-heading h2 { margin: .26rem 0 .4rem; font: 700 clamp(1.35rem,3vw,2rem)/1.05 var(--display); letter-spacing: .035em; text-transform: uppercase; }
+    .omni-description { max-width: 90ch; color: #b9c1cb; margin: 0; font-size: .78rem; line-height: 1.55; }
+    .omni-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin: .9rem 0; }
+    .omni-actions .control-btn { text-decoration: none; }
+    .omni-actions .control-btn.external { border-color: rgba(0,194,224,.55); color: var(--cyan); }
+    .omni-actions .control-btn.external:hover { background: rgba(0,194,224,.08); color: #a7f2ff; }
+    .omni-prompt { margin-top: .5rem; border-top: 1px solid var(--line); padding-top: .65rem; }
+    .omni-prompt summary { width: fit-content; cursor: pointer; color: var(--amber); font: 700 .67rem var(--mono); }
+    .omni-prompt textarea { display: block; width: 100%; min-height: 150px; margin-top: .6rem; padding: .75rem; border: 1px solid var(--line); border-radius: 6px; background: #090b10; color: #e4e8ed; font: 500 .72rem/1.55 var(--mono); resize: vertical; }
+    .omni-footnote { margin: .55rem 0 0; color: var(--quiet); font-size: .66rem; line-height: 1.5; }
     .production-notes { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: .75rem; margin-top: 1.25rem; }
     .note-box { padding: .9rem 1rem; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.02); }
     .note-box h3 { margin: 0 0 .35rem; color: var(--cyan); font: 700 .65rem var(--mono); letter-spacing: .1em; text-transform: uppercase; }
@@ -296,6 +309,9 @@
       .shot-row-time { font-size: .58rem; }
       .section-heading { align-items: start; }
       .section-index { font-size: .56rem; }
+      .omni-heading { flex-direction: column; }
+      .omni-actions .control-btn { flex: 1 1 145px; }
+      .omni-prompt textarea { min-height: 190px; font-size: .65rem; }
       .production-notes { grid-template-columns: 1fr; }
       .page-footer { flex-direction: column; font-size: .58rem; }
     }
@@ -400,6 +416,28 @@
         <a class="download-link" href="assets/scene_01_soundscape.wav" download>↓ Скачать звуковой скетч WAV · 18 секунд</a>
         <div class="intent-card"><strong>РЕЖИССЁРСКАЯ ЗАДАЧА</strong><span id="directorIntent">Представить метро как живой музыкальный инструмент. Сначала зритель слышит пространство, затем замечает человека, который умеет его слушать.</span></div>
       </aside>
+    </section>
+
+    <section class="omniflash-handoff" id="omniflash" aria-labelledby="omni-title">
+      <div class="omni-heading">
+        <div>
+          <div class="omni-eyebrow">ВНЕШНИЙ ВИДЕОСЕРВИС · РУЧНАЯ ПЕРЕДАЧА</div>
+          <h2 id="omni-title">Продолжить в OmniFlash</h2>
+          <p class="omni-description">Подготовил prompt и референсы для image-to-video по сцене 01. Публичной документации на API OmniFlash.net не нашёл, поэтому не вызываю скрытые endpoints и ничего не отправляю автоматически: откроется сайт, а кадр и промпт вы передадите сами.</p>
+        </div>
+        <span class="chip"><b>FLOW</b> IMAGE → VIDEO</span>
+      </div>
+      <div class="omni-actions">
+        <a class="control-btn external" href="https://omniflash.net/tools/video-generation" target="_blank" rel="noopener noreferrer">↗ ОТКРЫТЬ OMNIFLASH.NET</a>
+        <a class="control-btn" href="assets/frame_01_sound_hunt.jpg" download>↓ СКАЧАТЬ КАДР-СЦЕНУ</a>
+        <a class="control-btn" href="assets/char_rusty_needle.jpg" download>↓ ЛИСТ ПЕРСОНАЖА RUSTY</a>
+        <button class="control-btn" id="copyOmniPrompt" type="button">▣ КОПИРОВАТЬ PROMPT</button>
+      </div>
+      <details class="omni-prompt" open>
+        <summary>Готовый prompt для сцены «Охота за звуком»</summary>
+        <textarea id="omniPrompt" readonly aria-label="Готовый англоязычный промпт для OmniFlash">Animate the uploaded storyboard still into one short, continuous cinematic image-to-video shot for a 1994 New York hip-hop music video. Preserve the same fictional DJ Rusty Needle, face, olive MA-1 flight jacket, backward black cap, silver over-ear headphones, portable cassette recorder, directional microphone, and the original left/right composition. At night on a tiled 145th Street subway platform, Rusty stays calmly behind the marked yellow safety line while a stainless-steel train sweeps left-to-right in the background. Use a smooth slow dolly-in, subtle rail-induced camera vibration, and warm 3200K window light passing across his face and headphone cups; let the cassette reels turn gently and the analog VU needle react to the train sound. Gritty early-1990s 35mm anamorphic music-video look, warm amber streaks, deep charcoal shadows, restrained halation, fine film grain, natural motion and consistent character anatomy. Landscape framing; if the output is 16:9, keep Rusty and the train composition-safe for a wider cinematic crop. One continuous take. No dialogue, no added music, no cuts, no morphing, no extra fingers or limbs, no stepping toward the tracks, no text, logos, subtitles, or watermark.</textarea>
+        <p class="omni-footnote">Рекомендуемый порядок: скачайте кадр-сцену, откройте OmniFlash, загрузите его как reference image, вставьте prompt и выберите landscape. Лист Rusty — дополнительный референс, если сайт позволяет добавить второе изображение. Перед загрузкой проверьте правила сервиса и условия использования ваших файлов.</p>
+      </details>
     </section>
 
     <section class="shotlist-section" aria-labelledby="shotlist-title">
@@ -961,6 +999,22 @@
       $('exportButton').addEventListener('click', () => {
         if (renderedWebMUrl) downloadRenderedWebM();
         else renderWebM();
+      });
+      $('copyOmniPrompt').addEventListener('click', async () => {
+        const prompt = $('omniPrompt').value;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(prompt);
+            showToast('Prompt скопирован. Вставьте его в OmniFlash.');
+            return;
+          }
+        } catch (error) { /* Fall through to manual selection. */ }
+        const promptBox = $('omniPrompt');
+        promptBox.focus();
+        promptBox.select();
+        let copied = false;
+        try { copied = Boolean(document.execCommand && document.execCommand('copy')); } catch (error) { copied = false; }
+        showToast(copied ? 'Prompt скопирован.' : 'Prompt выделен — нажмите Ctrl+C / ⌘C.');
       });
       seek.addEventListener('input', () => {
         seekTo(Number(seek.value));
