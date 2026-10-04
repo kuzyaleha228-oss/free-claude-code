@@ -180,6 +180,22 @@
     .timeline-segment.active { background: rgba(229,155,39,.10); box-shadow: inset 0 -2px var(--gold); color: var(--text); }
     .timeline-segment b { display: block; color: var(--amber); font: 700 .65rem var(--mono); white-space: nowrap; }
     .timeline-segment span { display: block; margin-top: .14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .67rem; }
+    .export-bar {
+      display: flex; align-items: center; gap: .8rem; margin-top: .6rem; padding: .7rem .8rem;
+      border: 1px solid rgba(0,194,224,.22); border-radius: 7px; background: rgba(0,194,224,.035);
+    }
+    .export-button { flex: 0 0 auto; border-color: rgba(0,194,224,.48); color: var(--cyan); white-space: nowrap; }
+    .export-button:hover { border-color: var(--cyan); color: #9af1ff; background: rgba(0,194,224,.07); }
+    .export-button:disabled { cursor: wait; opacity: .58; }
+    .export-copy { display: grid; gap: .15rem; min-width: 0; }
+    .export-copy strong { color: #d7e8eb; font: 700 .64rem var(--mono); letter-spacing: .035em; }
+    .export-copy span { color: var(--muted); font-size: .68rem; line-height: 1.35; }
+    .export-progress-wrap { display: grid; gap: .22rem; width: min(240px, 32%); margin-left: auto; }
+    .export-progress-wrap progress { width: 100%; height: 5px; appearance: none; border: 0; border-radius: 5px; overflow: hidden; background: #2a303a; }
+    .export-progress-wrap progress::-webkit-progress-bar { background: #2a303a; }
+    .export-progress-wrap progress::-webkit-progress-value { background: linear-gradient(90deg,#00a9c2,#f6bf59); }
+    .export-progress-wrap progress::-moz-progress-bar { background: linear-gradient(90deg,#00a9c2,#f6bf59); }
+    .export-status { color: var(--quiet); font: 600 .57rem var(--mono); }
 
     .director-panel { border: 1px solid var(--line); border-radius: 9px; background: linear-gradient(160deg,#171a22,#101219); padding: 1rem; display: flex; flex-direction: column; gap: .8rem; }
     .panel-head { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding-bottom: .75rem; border-bottom: 1px solid var(--line); }
@@ -268,6 +284,9 @@
       .timeline-segment { padding: .42rem .32rem; }
       .timeline-segment span { font-size: .57rem; }
       .timeline-segment b { font-size: .58rem; }
+      .export-bar { flex-wrap: wrap; gap: .55rem; padding: .58rem; }
+      .export-button { width: 100%; }
+      .export-progress-wrap { width: 100%; margin-left: 0; }
       .director-panel { display: flex; padding: .8rem; }
       .intent-card { margin-top: 0; }
       .shot-row { grid-template-columns: 76px 1fr 56px; gap: .55rem; padding: .5rem; }
@@ -356,6 +375,11 @@
           <button class="control-btn sound-toggle" id="soundButton" type="button" aria-pressed="true" aria-label="Выключить звук">♫ ЗВУК</button>
         </div>
         <div class="timeline" id="timeline" role="group" aria-label="Покадровая шкала сцены"></div>
+        <div class="export-bar" aria-label="Экспорт видео-аниматика">
+          <button class="control-btn export-button" id="exportButton" type="button">⇩ СОБРАТЬ WEBM</button>
+          <div class="export-copy"><strong>ВИДЕО-АНИМАТИК · 1280×536 · 24 FPS</strong><span>18 секунд, со звуковой дорожкой; сборка идёт в браузере в реальном времени.</span></div>
+          <div class="export-progress-wrap"><progress id="exportProgress" max="100" value="0" aria-label="Прогресс экспорта"></progress><span class="export-status" id="exportStatus" role="status" aria-live="polite">ГОТОВ К ЭКСПОРТУ</span></div>
+        </div>
         <audio id="sceneAudio" src="assets/scene_01_soundscape.wav" preload="auto"></audio>
       </div>
 
@@ -626,6 +650,303 @@
         showToast(muted ? 'Звуковой скетч выключен.' : 'Оригинальный синтетический звуковой скетч включён.');
       }
 
+      let renderedWebMUrl = '';
+      let exportBusy = false;
+
+      function makeNoisePattern(ctx) {
+        const tile = document.createElement('canvas');
+        tile.width = 160;
+        tile.height = 90;
+        const tileCtx = tile.getContext('2d');
+        const pixels = tileCtx.createImageData(tile.width, tile.height);
+        for (let i = 0; i < pixels.data.length; i += 4) {
+          const value = Math.floor(Math.random() * 256);
+          pixels.data[i] = value;
+          pixels.data[i + 1] = value;
+          pixels.data[i + 2] = value;
+          pixels.data[i + 3] = 155;
+        }
+        tileCtx.putImageData(pixels, 0, 0);
+        return ctx.createPattern(tile, 'repeat');
+      }
+
+      function drawExportFrame(ctx, canvas, time, images, grainPattern) {
+        const width = canvas.width;
+        const height = canvas.height;
+        const index = shotAt(Math.min(DURATION - 1 / 24, Math.max(0, time)));
+        const shot = shots[index];
+        const local = Math.max(0, Math.min(1, (time - shot.start) / (shot.end - shot.start)));
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#08090c';
+        ctx.fillRect(0, 0, width, height);
+
+        if (shot.image) {
+          const image = images.get(shot.image);
+          if (image && image.naturalWidth) {
+            let zoom = 1.04, moveX = 0, moveY = 0;
+            if (shot.motion === 'approach') { zoom = 1.04 + local * .09; moveX = 1.8 - local * 2.8; moveY = .45 - local * .9; }
+            if (shot.motion === 'macro') { zoom = 1.02 + local * .06; moveX = -1.2 + local * 1.2; moveY = .3; }
+            if (shot.motion === 'pass') { zoom = 1.035 + local * .095; moveX = -1.4 + local * 2.8; moveY = .1; }
+            if (shot.motion === 'listen') { zoom = 1.11 + local * .035; moveX = -.8 + local * .8; moveY = .1; }
+            const coverScale = Math.max(width / image.naturalWidth, height / image.naturalHeight) * zoom;
+            const drawWidth = image.naturalWidth * coverScale;
+            const drawHeight = image.naturalHeight * coverScale;
+            const gateWeaveX = shot.motion === 'pass' ? Math.sin(time * 31) * 1.4 : Math.sin(time * 2.1) * .35;
+            const gateWeaveY = shot.motion === 'pass' ? Math.cos(time * 27) * .9 : 0;
+            ctx.drawImage(image,
+              (width - drawWidth) / 2 + moveX * width / 100 + gateWeaveX,
+              (height - drawHeight) / 2 + moveY * height / 100 + gateWeaveY,
+              drawWidth, drawHeight);
+          }
+        }
+
+        if (shot.id === '01E') {
+          const fade = Math.max(0, Math.min(1, (time - shot.start) / .24));
+          ctx.fillStyle = '#090a0e';
+          ctx.fillRect(0, 0, width, height);
+          const halo = ctx.createRadialGradient(width / 2, height / 2, 8, width / 2, height / 2, height * .72);
+          halo.addColorStop(0, 'rgba(39,34,29,.72)');
+          halo.addColorStop(1, 'rgba(9,10,14,0)');
+          ctx.fillStyle = halo;
+          ctx.fillRect(0, 0, width, height);
+          ctx.save();
+          ctx.globalAlpha = fade;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#00c2e0';
+          ctx.font = '700 18px "JetBrains Mono", monospace';
+          ctx.fillText('145TH STREET · TAKE 01', width / 2, height * .37);
+          ctx.fillStyle = '#f4f1e9';
+          ctx.font = '700 58px "Oswald", Impact, sans-serif';
+          ctx.fillText('SAMPLE CAPTURED', width / 2, height * .49);
+          ctx.fillStyle = '#f6bf59';
+          ctx.font = '600 15px "JetBrains Mono", monospace';
+          ctx.fillText('ПЕРЕХОД В СЦЕНУ 02  →  BOILER ROOM', width / 2, height * .61);
+          ctx.restore();
+        } else {
+          // Film-like warm pass-by flicker, kept subtle so the still remains readable.
+          if (shot.motion === 'pass') {
+            const flare = Math.max(0, Math.sin(time * 13.2) * .11 + Math.sin(time * 3.7) * .05);
+            if (flare > 0) {
+              ctx.save();
+              ctx.globalAlpha = flare * 1.9;
+              const light = ctx.createLinearGradient(width * .25, 0, width * .75, 0);
+              light.addColorStop(0, 'rgba(255,191,91,0)');
+              light.addColorStop(.52, 'rgba(255,225,175,.65)');
+              light.addColorStop(1, 'rgba(255,191,91,0)');
+              ctx.fillStyle = light;
+              ctx.fillRect(0, 0, width, height);
+              ctx.restore();
+            }
+          }
+
+          const edgeShade = ctx.createLinearGradient(0, 0, 0, height);
+          edgeShade.addColorStop(0, 'rgba(0,0,0,.56)');
+          edgeShade.addColorStop(.2, 'rgba(0,0,0,0)');
+          edgeShade.addColorStop(.72, 'rgba(0,0,0,0)');
+          edgeShade.addColorStop(1, 'rgba(0,0,0,.66)');
+          ctx.fillStyle = edgeShade;
+          ctx.fillRect(0, 0, width, height);
+
+          const vignette = ctx.createRadialGradient(width / 2, height / 2, height * .22, width / 2, height / 2, width * .63);
+          vignette.addColorStop(0, 'rgba(0,0,0,0)');
+          vignette.addColorStop(1, 'rgba(0,0,0,.30)');
+          ctx.fillStyle = vignette;
+          ctx.fillRect(0, 0, width, height);
+
+          ctx.textBaseline = 'top';
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#f6bf59';
+          ctx.font = '700 16px "JetBrains Mono", monospace';
+          ctx.fillText(`${shot.id} · ${shot.short}`, 34, 24);
+          ctx.fillStyle = 'rgba(246,241,233,.91)';
+          ctx.font = '600 12px "JetBrains Mono", monospace';
+          ctx.fillText(shot.hudLens, 34, 47);
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#f6bf59';
+          ctx.font = '700 16px "JetBrains Mono", monospace';
+          ctx.fillText(fmt(time), width - 34, 24);
+
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'bottom';
+          ctx.fillStyle = '#f6bf59';
+          ctx.font = '700 13px "JetBrains Mono", monospace';
+          ctx.fillText(shot.hudMove, 34, height - 24);
+          ctx.fillStyle = 'rgba(246,241,233,.78)';
+          ctx.font = '600 11px "JetBrains Mono", monospace';
+          ctx.fillText('145TH ST · PLATFORM PLATE', 34, height - 8);
+
+          const caption = shot.caption;
+          ctx.font = '500 13px "JetBrains Mono", monospace';
+          const captionWidth = Math.min(width - 100, ctx.measureText(caption).width + 30);
+          const captionX = (width - captionWidth) / 2;
+          ctx.fillStyle = 'rgba(0,0,0,.72)';
+          ctx.fillRect(captionX, height - 78, captionWidth, 30);
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#fff7e8';
+          ctx.fillText(caption, width / 2, height - 63, captionWidth - 20);
+        }
+
+        if (grainPattern) {
+          ctx.save();
+          ctx.globalAlpha = .045;
+          ctx.globalCompositeOperation = 'screen';
+          ctx.fillStyle = grainPattern;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        }
+      }
+
+      async function loadExportImages() {
+        const sources = [...new Set(shots.map((shot) => shot.image).filter(Boolean))];
+        const entries = await Promise.all(sources.map((src) => new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve([src, image]);
+          image.onerror = () => reject(new Error(`Не удалось загрузить кадр ${src}`));
+          image.src = src;
+          if (image.complete && image.naturalWidth) resolve([src, image]);
+        })));
+        return new Map(entries);
+      }
+
+      function downloadRenderedWebM() {
+        if (!renderedWebMUrl) return;
+        const link = document.createElement('a');
+        link.href = renderedWebMUrl;
+        link.download = 'subway-prophets-scene-01-animatic.webm';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        $('exportStatus').textContent = 'СКАЧИВАНИЕ WEBM НАЧАТО';
+      }
+
+      async function renderWebM() {
+        if (exportBusy) return;
+        if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream || !window.MediaStream) {
+          $('exportStatus').textContent = 'ЭТОТ БРАУЗЕР НЕ ПОДДЕРЖИВАЕТ WEBM';
+          showToast('Экспорт WebM недоступен в этом браузере. Попробуйте актуальный Chrome или Edge.');
+          return;
+        }
+        if (renderedWebMUrl) {
+          downloadRenderedWebM();
+          return;
+        }
+
+        exportBusy = true;
+        const exportButton = $('exportButton');
+        const exportStatus = $('exportStatus');
+        const exportProgress = $('exportProgress');
+        exportButton.disabled = true;
+        exportButton.textContent = '⏳ СОБИРАЮ ВИДЕО…';
+        exportProgress.value = 0;
+        exportStatus.textContent = 'ПОДГОТОВКА КАДРОВ И ЗВУКА';
+
+        let canvasStream = null;
+        let mixedStream = null;
+        let exportContext = null;
+        let renderRaf = 0;
+        let recorder = null;
+        let rendered = false;
+        try {
+          if (playing) {
+            playing = false;
+            cancelAnimationFrame(raf);
+            audio.pause();
+            playButton.textContent = '▶ ПРОДОЛЖИТЬ';
+            playButton.setAttribute('aria-label', 'Продолжить аниматик');
+          }
+          // Create/resume Web Audio synchronously from the user's click before awaiting asset loads.
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) throw new Error('Web Audio API не поддерживается этим браузером.');
+          exportContext = new AudioContextClass();
+          await exportContext.resume();
+          const images = await loadExportImages();
+          if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = 1280;
+          canvas.height = 536;
+          const ctx = canvas.getContext('2d', { alpha: false });
+          if (!ctx) throw new Error('Не удалось создать Canvas-контекст.');
+          const grainPattern = makeNoisePattern(ctx);
+          drawExportFrame(ctx, canvas, 0, images, grainPattern);
+
+          const audioResponse = await fetch('assets/scene_01_soundscape.wav');
+          if (!audioResponse.ok) throw new Error('Не удалось загрузить WAV для видеодорожки.');
+          const audioBuffer = await exportContext.decodeAudioData(await audioResponse.arrayBuffer());
+          const source = exportContext.createBufferSource();
+          source.buffer = audioBuffer;
+          const audioDestination = exportContext.createMediaStreamDestination();
+          source.connect(audioDestination);
+
+          canvasStream = canvas.captureStream(24);
+          mixedStream = new MediaStream([
+            ...canvasStream.getVideoTracks(),
+            ...audioDestination.stream.getAudioTracks()
+          ]);
+          const preferredTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+          const mimeType = preferredTypes.find((type) => MediaRecorder.isTypeSupported(type));
+          recorder = new MediaRecorder(mixedStream, {
+            ...(mimeType ? { mimeType } : {}),
+            videoBitsPerSecond: 4_000_000,
+            audioBitsPerSecond: 128_000
+          });
+          const chunks = [];
+          const result = new Promise((resolve, reject) => {
+            recorder.ondataavailable = (event) => { if (event.data && event.data.size) chunks.push(event.data); };
+            recorder.onerror = (event) => reject(event.error || new Error('Ошибка MediaRecorder.'));
+            recorder.onstop = () => {
+              if (!chunks.length) { reject(new Error('Экспорт завершился без видеоданных.')); return; }
+              const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+              renderedWebMUrl = URL.createObjectURL(blob);
+              rendered = true;
+              exportProgress.value = 100;
+              exportStatus.textContent = `ГОТОВО · ${(blob.size / (1024 * 1024)).toFixed(1)} MB · НАЖМИТЕ СКАЧАТЬ`;
+              exportButton.disabled = false;
+              exportButton.textContent = '↓ СКАЧАТЬ WEBM';
+              showToast('Аниматик собран. Нажмите «Скачать WebM».');
+              resolve(blob);
+            };
+          });
+
+          recorder.start(250);
+          const startAt = exportContext.currentTime + .06;
+          const wallStart = performance.now() + 60;
+          source.start(startAt);
+          exportStatus.textContent = 'РЕНДЕР В РЕАЛЬНОМ ВРЕМЕНИ · 00:00 / 00:18';
+          const renderTick = (now) => {
+            const elapsed = Math.max(0, (now - wallStart) / 1000);
+            const t = Math.min(DURATION - 1 / 24, elapsed);
+            drawExportFrame(ctx, canvas, t, images, grainPattern);
+            exportProgress.value = Math.min(99, (elapsed / DURATION) * 100);
+            exportStatus.textContent = `РЕНДЕР В РЕАЛЬНОМ ВРЕМЕНИ · ${fmt(t).slice(0,5)} / 00:18`;
+            if (elapsed >= DURATION) {
+              exportProgress.value = 100;
+              exportStatus.textContent = 'ЗАКРЫТИЕ ВИДЕОКОНТЕЙНЕРА…';
+              window.setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, 120);
+              return;
+            }
+            renderRaf = requestAnimationFrame(renderTick);
+          };
+          renderRaf = requestAnimationFrame(renderTick);
+          await result;
+        } catch (error) {
+          console.error('WebM export failed:', error);
+          exportStatus.textContent = 'ОШИБКА ЭКСПОРТА · ПОПРОБУЙТЕ ЕЩЁ РАЗ';
+          showToast(error && error.message ? error.message : 'Не удалось собрать WebM в этом браузере.');
+        } finally {
+          if (renderRaf) cancelAnimationFrame(renderRaf);
+          if (recorder && recorder.state === 'recording') recorder.stop();
+          if (mixedStream) mixedStream.getTracks().forEach((track) => track.stop());
+          if (canvasStream) canvasStream.getTracks().forEach((track) => track.stop());
+          if (exportContext && exportContext.state !== 'closed') await exportContext.close().catch(() => {});
+          exportBusy = false;
+          exportButton.disabled = false;
+          if (!rendered) exportButton.textContent = '⇩ СОБРАТЬ WEBM';
+        }
+      }
+
       function showToast(message) {
         const node = $('toast');
         node.textContent = message;
@@ -637,6 +958,10 @@
       playButton.addEventListener('click', togglePlayback);
       $('restartButton').addEventListener('click', restart);
       soundButton.addEventListener('click', toggleSound);
+      $('exportButton').addEventListener('click', () => {
+        if (renderedWebMUrl) downloadRenderedWebM();
+        else renderWebM();
+      });
       seek.addEventListener('input', () => {
         seekTo(Number(seek.value));
         if (playing && !audio.paused) audio.currentTime = currentTime;
